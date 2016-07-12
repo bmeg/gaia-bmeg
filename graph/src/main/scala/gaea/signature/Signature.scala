@@ -2,8 +2,9 @@ package gaea.signature
 
 import gaea.feature.Feature
 import gaea.titan.Titan
-import gaea.math.Stats
 import gaea.collection.Collection._
+
+import ladder.statistics.Statistics
 
 import gremlin.scala._
 import com.thinkaurelius.titan.core.TitanGraph
@@ -86,7 +87,7 @@ object Signature {
       : TitanGraph = {
 
     val levels = dehydrateCoefficients(expressionVertex) ("expressions")
-    val normalized = Stats.exponentialNormalization(levels)
+    val normalized = Statistics.exponentialNormalization(levels)
 
     for (signature <- signatures) {
       val (signatureVertex, coefficients) = signature
@@ -135,7 +136,7 @@ object Signature {
       (signatureName, tuple.toArray.filter(t => intersect.contains(t._4)).sortBy(_._4))
     }.toMap
 
-    val score = Stats.pearson(
+    val score = Statistics.pearson(
       breeze.linalg.Vector[Double](levels(a).map(_._3)),
       breeze.linalg.Vector[Double](levels(b).map(_._3)))
 

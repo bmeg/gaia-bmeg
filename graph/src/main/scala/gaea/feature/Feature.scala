@@ -1,5 +1,6 @@
 package gaea.feature
 
+import gaea.titan.Titan
 import com.thinkaurelius.titan.core.TitanGraph
 import gremlin.scala._
 import gaea.collection.Collection._
@@ -7,27 +8,26 @@ import gaea.collection.Collection._
 object Feature {
   val Name = Key[String]("name")
 
-  def removePrefix(name: String): String = {
-    name.split(":").drop(1).reduceLeft((t, s) => t + ":" + s)
-  }
-
   def findSynonymVertex(graph: TitanGraph) (name: String): Option[Vertex] = {
-    graph.V.hasLabel("featureSynonym").has(Name, "feature:" + name).out("synonymFor").headOption
+    graph.V.hasLabel("featureSynonym").has(Name, "featureSynonym:" + name).out("synonymFor").headOption
   }
 
   def findSynonym(graph: TitanGraph) (name: String): Option[String] = {
     val values = findSynonymVertex(graph) (name).map(_.valueMap())
-    values.map(vertex => removePrefix(vertex("name").asInstanceOf[String]))
+    values.map(vertex => Titan.removePrefix(vertex("name").asInstanceOf[String]))
   }
 
   def findFeature(graph: TitanGraph) (name: String): Vertex = {
-    findSynonymVertex(graph) (name).getOrElse {
-      val synonym = graph.V.hasLabel("featureSynonym").has(Name, name).headOption.getOrElse {
-        graph + ("featureSynonym", Name -> name)
+    val inner = Titan.removePrefix(name)
+    val synonymName = "featureSynonym:" + inner
+    val featureName = "feature:" + inner
+    findSynonymVertex(graph) (inner).getOrElse {
+      val synonym = graph.V.hasLabel("featureSynonym").has(Name, synonymName).headOption.getOrElse {
+        graph + ("featureSynonym", Name -> synonymName)
       }
 
-      val feature = graph.V.hasLabel("feature").has(Name, name).headOption.getOrElse {
-        graph + ("feature", Name -> name)
+      val feature = graph.V.hasLabel("feature").has(Name, featureName).headOption.getOrElse {
+        graph + ("feature", Name -> featureName)
       }
 
       synonym --- ("synonymFor") --> feature
