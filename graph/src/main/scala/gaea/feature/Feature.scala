@@ -38,7 +38,7 @@ object Feature {
   def findIndividualsWithVariants(graph: TitanGraph) (feature: String): GremlinScala[Vertex, shapeless.HNil] = {
     graph.V
       .hasLabel("feature")
-      .has(Name, feature)
+      .has(Name, "feature:" + feature)
       .in("inFeature")
       .out("effectOf")
       .out("tumorSample")
