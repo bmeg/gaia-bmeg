@@ -1,2 +1,6 @@
 /project
 /target
+/lib/target
+/graph/target
+/facet/target
+/agent/target
