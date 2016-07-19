@@ -5,6 +5,7 @@ import gaea.titan.Titan
 import gaea.collection.Collection._
 
 import ladder.statistics.Statistics
+import org.apache.commons.math3.stat.inference._
 
 import gremlin.scala._
 import com.thinkaurelius.titan.core.TitanGraph
@@ -30,6 +31,8 @@ object Signature {
   val nameStep = StepLabel[String]()
 
   val emptyMap = Map[String, Double]()
+
+  val ks = new KolmogorovSmirnovTest()
 
   def dehydrateCoefficients(vertex: Vertex) (key: String): Map[String, Double] = {
     val raw = vertex.property(key).orElse("")
@@ -114,6 +117,33 @@ object Signature {
     }
 
     graph
+  }
+
+  def variantSignificance(graph: TitanGraph) (feature: String) (signature: String): Double = {
+    val variantLevels = Feature.synonymQuery(graph) (feature)
+      .in("inFeature")
+      .out("effectOf")
+      .out("tumorSample")
+      .in("expressionFor").as(expressionStep)
+      .inE("appliesTo").as(levelStep)
+      .outV
+      .has(Name, "linearSignature:" + signature)
+      .select((expressionStep, levelStep))
+      .toList
+
+    val expressionNames = variantLevels.map(_._1.property("name").orElse(""))
+    val signatureLevels = variantLevels.map(_._2.property("level").orElse(0.0))
+
+    val backgroundLevels = Titan.typeQuery(graph) ("geneExpression")
+      .has(Name, without(expressionNames:_*))
+      .inE("appliesTo").as(levelStep)
+      .outV
+      .has(Name, "linearSignature:" + signature)
+      .select(levelStep)
+      .value[Double]("level")
+      .toList
+
+    ks.kolmogorovSmirnovTest(signatureLevels.toArray, backgroundLevels.toArray)
   }
 
   def signatureCorrelation(graph: TitanGraph) (a: String) (b: String): Tuple3[Vertex, Vertex, Double] = {
