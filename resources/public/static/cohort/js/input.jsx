@@ -4,7 +4,7 @@ function Pie() {
   var color = d3.scale.category10();
 
   var svg = d3.select('svg.cohort');
-  var p = svg.append('g').attr('transform', 'translate(300, 250)');
+  var p = svg.append('g').attr('transform', 'translate(400, 250)');
   var pie = p.selectAll('path.slice');
   var l = svg.append('g').attr('class', 'legend')
   var legend = l.selectAll('text.line');
@@ -103,7 +103,10 @@ var FeatureInput = React.createClass({
     return (
       <div>
         <form onChange={(e) => this.changeInput(e)}>
-        <input id="feature-text-input" type="text" name="feature" className="mdl-textfield__input" />
+          <div className="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+            <input id="feature-text-input" type="text" name="feature" className="mdl-textfield__input" />
+            <label className="mdl-textfield__label" htmlFor="feature-text-input">Gene...</label>
+          </div>
         </form>
         <p>Showing tumor sites for variants in: {this.state.lastMatch}</p>
       </div>
@@ -111,4 +114,4 @@ var FeatureInput = React.createClass({
   }
 });
 
-ReactDOM.render(<FeatureInput />, document.getElementById('feature-input'))
+ReactDOM.render(<FeatureInput />, document.getElementById('feature-input'));
