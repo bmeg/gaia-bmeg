@@ -23,6 +23,12 @@ object IndividualFacet extends LazyLogging {
   val Name = Key[String]("name")
   val TumorSite = Key[String]("submittedTumorSite")
 
+  def findIndividualAttributes(graph: TitanGraph): Set[String] = {
+    Titan.typeQuery(graph) ("individual").toList.flatMap(_.valueMap.keys).toSet
+  }
+
+  lazy val individualAttributes = findIndividualAttributes(graph)
+
   def individualSurvivalJson(individual: Vertex): Json = {
     val values = individual.valueMap("name", "vitalStatus", "deathDaysTo", "submittedTumorType")
 
@@ -47,6 +53,20 @@ object IndividualFacet extends LazyLogging {
         val individualVertexes = graph.V.hasLabel("individual").has(Name, within(individualNames:_*)).toList
         val individualJson = individualVertexes.foldLeft(jEmptyArray) {(array, vertex) =>
           individualSurvivalJson(vertex) -->>: array
+        }
+
+        Ok(individualJson)
+      }
+
+    case GET -> Root / "attributes" =>
+      Ok(individualAttributes.asJson)
+
+    case request @ POST -> Root / "values" =>
+      request.as[Json].flatMap { json =>
+        val clinicalNames = json.as[List[String]].getOr(List[String]())
+        val individuals = Titan.typeQuery(graph) ("individual").toList // .map(_.valueMap)
+        val individualJson = clinicalNames.foldLeft(jEmptyArray) { (json, clinical) =>
+          clinicalEvent(individuals) (clinical) -->>: json
         }
 
         Ok(individualJson)

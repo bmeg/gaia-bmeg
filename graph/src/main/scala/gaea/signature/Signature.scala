@@ -33,6 +33,7 @@ object Signature {
   val emptyMap = Map[String, Double]()
 
   val ks = new KolmogorovSmirnovTest()
+  val background = signatureBackground(Titan.defaultGraph())
 
   def dehydrateCoefficients(vertex: Vertex) (key: String): Map[String, Double] = {
     val raw = vertex.property(key).orElse("")
@@ -119,32 +120,32 @@ object Signature {
     graph
   }
 
-  def variantSignificance(graph: TitanGraph) (feature: String) (signature: String): Double = {
-    val variantLevels = Feature.synonymQuery(graph) (feature)
-      .in("inFeature")
-      .out("effectOf")
-      .out("tumorSample")
-      .in("expressionFor").as(expressionStep)
-      .inE("appliesTo").as(levelStep)
-      .outV
-      .has(Name, "linearSignature:" + signature)
-      .select((expressionStep, levelStep))
-      .toList
+  // def variantSignificance(graph: TitanGraph) (feature: String) (signature: String): Double = {
+  //   val variantLevels = Feature.synonymQuery(graph) (feature)
+  //     .in("inFeature")
+  //     .out("effectOf")
+  //     .out("tumorSample")
+  //     .in("expressionFor").as(expressionStep)
+  //     .inE("appliesTo").as(levelStep)
+  //     .outV
+  //     .has(Name, "linearSignature:" + signature)
+  //     .select((expressionStep, levelStep))
+  //     .toList
 
-    val expressionNames = variantLevels.map(_._1.property("name").orElse(""))
-    val signatureLevels = variantLevels.map(_._2.property("level").orElse(0.0))
+  //   val expressionNames = variantLevels.map(_._1.property("name").orElse(""))
+  //   val signatureLevels = variantLevels.map(_._2.property("level").orElse(0.0))
 
-    val backgroundLevels = Titan.typeQuery(graph) ("geneExpression")
-      .has(Name, without(expressionNames:_*))
-      .inE("appliesTo").as(levelStep)
-      .outV
-      .has(Name, "linearSignature:" + signature)
-      .select(levelStep)
-      .value[Double]("level")
-      .toList
+  //   val backgroundLevels = Titan.typeQuery(graph) ("geneExpression")
+  //     .has(Name, without(expressionNames:_*))
+  //     .inE("appliesTo").as(levelStep)
+  //     .outV
+  //     .has(Name, "linearSignature:" + signature)
+  //     .select(levelStep)
+  //     .value[Double]("level")
+  //     .toList
 
-    ks.kolmogorovSmirnovTest(signatureLevels.toArray, backgroundLevels.toArray)
-  }
+  //   ks.kolmogorovSmirnovTest(signatureLevels.toArray, backgroundLevels.toArray)
+  // }
 
   def signatureCorrelation(graph: TitanGraph) (a: String) (b: String): Tuple3[Vertex, Vertex, Double] = {
     val query = graph.V.has(Name, within(List(a, b):_*)).as(signatureStep)
@@ -193,6 +194,52 @@ object Signature {
     }
 
     graph
+  }
+
+  def extractLevels(levels: Seq[Tuple2[Vertex, Edge]]): Map[String, Seq[Double]] = {
+    levels.groupBy(a => a._1.property("name").orElse("")).map { s =>
+      (s._1, s._2.map(_._2.property("level").orElse(0.0)).sorted)
+    }.toMap
+  }
+
+  def signatureBackground(graph: TitanGraph): Map[String, Seq[Double]] = {
+    val levelPairs = Titan.typeQuery(graph) ("geneExpression")
+      .inE("appliesTo").as(levelStep)
+      .outV.as(signatureStep)
+      .select((signatureStep, levelStep))
+      .toList
+
+    extractLevels(levelPairs)
+  }
+
+  // Eventually filter out these variantClassification values: List("5'Flank", "IGR", "Silent", "Intron")`
+
+  def variantLevels(graph: TitanGraph) (features: Seq[String]): Map[String, Seq[Double]] = {
+    val levelPairs = Feature.synonymsQuery(graph) (features)
+      .in("inFeature")
+      .out("effectOf")
+      .out("tumorSample")
+      .in("expressionFor").as(expressionStep)
+      .inE("appliesTo").as(levelStep)
+      .outV.as(signatureStep)
+      .select((signatureStep, levelStep))
+      .toSet.toList
+
+    extractLevels(levelPairs)
+  }
+
+  def variantSignificance(graph: TitanGraph) (features: Seq[String]): Map[String, Double] = {
+    val variants = variantLevels(graph) (features)
+    variants.map { variant =>
+      val featureLevels = variant._2
+      val back = background(variant._1)
+      val backgroundLevels = shear[Double](featureLevels, back)
+      val p = ks.kolmogorovSmirnovTest(backgroundLevels.toArray, featureLevels.toArray, true)
+
+      println("background: " + backgroundLevels.size + " - first: " + backgroundLevels.head + " - levels: " + featureLevels.size + " - total: " + back.toSet.size + " - shorn: " + back.toSet.diff(featureLevels.toSet).size)
+
+      (variant._1, p)
+    }
   }
 
   def highestScoringSamples
