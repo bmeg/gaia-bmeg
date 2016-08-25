@@ -2,6 +2,7 @@ package gaea.facet
 
 import gaea.titan.Titan
 import gaea.collection.Collection._
+import gaea.facet.event.Event
 
 import org.http4s._
 import org.http4s.server._
@@ -66,7 +67,7 @@ object IndividualFacet extends LazyLogging {
         val clinicalNames = json.as[List[String]].getOr(List[String]())
         val individuals = Titan.typeQuery(graph) ("individual").toList // .map(_.valueMap)
         val individualJson = clinicalNames.foldLeft(jEmptyArray) { (json, clinical) =>
-          clinicalEvent(individuals) (clinical) -->>: json
+          Event.clinicalEvent(individuals) (clinical) -->>: json
         }
 
         Ok(individualJson)

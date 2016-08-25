@@ -27,7 +27,7 @@ object SampleFacet extends LazyLogging {
 
   val service = HttpService {
     case request @ POST -> Root / "variant" / feature =>
-      request.as[Json].flatMap { json => 
+      request.as[Json].flatMap { json =>
         Ok("yellow".asJson)
       }
   }
