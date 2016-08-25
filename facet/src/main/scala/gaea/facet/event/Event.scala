@@ -13,7 +13,7 @@ import gremlin.scala._
 import scala.collection.JavaConversions._
 
 object Event {
-  val Name = Key[String]("name")
+  val Gid = Key[String]("gid")
   val ilog2 = 1.0 / scala.math.log(2)
 
   def log2(x: Double): Double = {
@@ -30,8 +30,8 @@ object Event {
 
   def propertiesToJson(properties: Map[String, Any]) (key: String) (value: String): Json = {
     properties.foldLeft(jEmptyArray) { (json, property) =>
-      val (name, attribute) = property
-      val pair = (key, jString(name)) ->: (value, jString(attribute.toString)) ->: jEmptyObject
+      val (gid, attribute) = property
+      val pair = (key, jString(gid)) ->: (value, jString(attribute.toString)) ->: jEmptyObject
       pair -->>: json
     }
   }
@@ -45,7 +45,7 @@ object Event {
     val coefficients = Signature.dehydrateCoefficients(vertex) ("coefficients")
     val relevant = selectKeys[String, Double](coefficients) (featureNames) (0.0)
     val score = relevant.values.foldLeft(0.0) ((s, v) => s + Math.abs(v))
-    val signatureName = vertex.property(Name).orElse("no name")
+    val signatureName = vertex.property(Gid).orElse("no name")
     val metadata = eventMetadata(signatureName, "drug sensitivity signature", "NUMERIC", relevant)
     ("score", jNumber(score).getOrElse(jZero)) ->: ("signatureMetadata", metadata) ->: jEmptyObject
   }
@@ -53,14 +53,14 @@ object Event {
   def significanceToJson(featureNames: List[String]) (vertex: Vertex) (significance: Double): Json = {
     val coefficients = Signature.dehydrateCoefficients(vertex) ("coefficients")
     val relevant = selectKeys[String, Double](coefficients) (featureNames) (0.0)
-    val signatureName = vertex.property(Name).orElse("no name")
+    val signatureName = vertex.property(Gid).orElse("no name")
     val metadata = eventMetadata(signatureName, "significance to mutation", "NUMERIC", relevant)
     ("significance", jNumber(significance).getOrElse(jZero)) ->: ("signatureMetadata", metadata) ->: jEmptyObject
   }
 
   def clinicalEvent(individualVertexes: Seq[Vertex]) (clinicalName: String): Json = {
     val metadata = eventMetadata(clinicalName, "clinical", "STRING", Map[String, Double]())
-    val properties = individualVertexes.map(vertex => (vertex.property("name").orElse(""), vertex.property(clinicalName).orElse(""))).toMap
+    val properties = individualVertexes.map(vertex => (vertex.property("gid").orElse(""), vertex.property(clinicalName).orElse(""))).toMap
     val json = propertiesToJson(properties) ("sampleID") ("value")
     ("metadata", metadata) ->: ("sampleData", json) ->: jEmptyObject
   }

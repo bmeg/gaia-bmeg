@@ -16,7 +16,7 @@ import scalaz._, Scalaz._
 import argonaut._, Argonaut._
 
 object Signature {
-  val Name = Key[String]("name")
+  val Gid = Key[String]("gid")
   val Intercept = Key[Double]("intercept")
   val Expressions = Key[String]("expressions")
   val Coefficient = Key[Double]("coefficient")
@@ -28,7 +28,7 @@ object Signature {
   val expressionStep = StepLabel[Vertex]()
   val individualStep = StepLabel[Vertex]()
   val levelStep = StepLabel[Edge]()
-  val nameStep = StepLabel[String]()
+  val gidStep = StepLabel[String]()
 
   val emptyMap = Map[String, Double]()
 
@@ -128,18 +128,18 @@ object Signature {
   //     .in("expressionFor").as(expressionStep)
   //     .inE("appliesTo").as(levelStep)
   //     .outV
-  //     .has(Name, "linearSignature:" + signature)
+  //     .has(Gid, "linearSignature:" + signature)
   //     .select((expressionStep, levelStep))
   //     .toList
 
-  //   val expressionNames = variantLevels.map(_._1.property("name").orElse(""))
+  //   val expressionNames = variantLevels.map(_._1.property("gid").orElse(""))
   //   val signatureLevels = variantLevels.map(_._2.property("level").orElse(0.0))
 
   //   val backgroundLevels = Titan.typeQuery(graph) ("geneExpression")
-  //     .has(Name, without(expressionNames:_*))
+  //     .has(Gid, without(expressionNames:_*))
   //     .inE("appliesTo").as(levelStep)
   //     .outV
-  //     .has(Name, "linearSignature:" + signature)
+  //     .has(Gid, "linearSignature:" + signature)
   //     .select(levelStep)
   //     .value[Double]("level")
   //     .toList
@@ -148,14 +148,14 @@ object Signature {
   // }
 
   def signatureCorrelation(graph: TitanGraph) (a: String) (b: String): Tuple3[Vertex, Vertex, Double] = {
-    val query = graph.V.has(Name, within(List(a, b):_*)).as(signatureStep)
+    val query = graph.V.has(Gid, within(List(a, b):_*)).as(signatureStep)
       .outE("appliesTo").as(levelStep)
       .inV.as(expressionStep)
       .select((signatureStep, levelStep, expressionStep))
-      .map(q => (q._1.property("name").orElse(""),
+      .map(q => (q._1.property("gid").orElse(""),
         q._1,
         q._2.property("level").orElse(0.0),
-        q._3.property("name").orElse(""))).toSet
+        q._3.property("gid").orElse(""))).toSet
 
     val signatures = query.groupBy(_._1)
     val aNames = signatures(a).map(_._4)
@@ -183,9 +183,9 @@ object Signature {
 
   def correlateAllSignatures(graph: TitanGraph): TitanGraph = {
     val signatureNames = graph.V.hasLabel("type")
-      .has(Name, "type:linearSignature")
+      .has(Gid, "type:linearSignature")
       .out("hasInstance")
-      .toSet.map(_.property("name").orElse(""))
+      .toSet.map(_.property("gid").orElse(""))
 
     val pairs = distinctPairs(signatureNames)
     for ((a, b) <- pairs) {
@@ -197,7 +197,7 @@ object Signature {
   }
 
   def extractLevels(levels: Seq[Tuple2[Vertex, Edge]]): Map[String, Seq[Double]] = {
-    levels.groupBy(a => a._1.property("name").orElse("")).map { s =>
+    levels.groupBy(a => a._1.property("gid").orElse("")).map { s =>
       (s._1, s._2.map(_._2.property("level").orElse(0.0)).sorted)
     }.toMap
   }
@@ -250,7 +250,7 @@ object Signature {
       : Set[Tuple3[Vertex, Vertex, Vertex]] = {
 
     graph.V.hasLabel("linearSignature")
-      .has(Name, within(signatures:_*)).as(signatureStep)
+      .has(Gid, within(signatures:_*)).as(signatureStep)
       .outE("appliesTo").orderBy("level", order).limit(limit)
       .inV.as(expressionStep)
       .out("expressionFor")
@@ -266,11 +266,11 @@ object Signature {
       : Set[Tuple3[Vertex, Vertex, Edge]] = {
 
     graph.V.hasLabel("individual")
-      .has(Name, within(individuals.toSeq:_*)).as(individualStep)
+      .has(Gid, within(individuals.toSeq:_*)).as(individualStep)
       .in("sampleOf").has(SampleType, "tumor")
       .in("expressionFor")
       .inE("appliesTo").as(levelStep)
-      .outV.has(Name, within(signatures:_*)).as(signatureStep)
+      .outV.has(Gid, within(signatures:_*)).as(signatureStep)
       .select((signatureStep, individualStep, levelStep)).toSet
   }
 

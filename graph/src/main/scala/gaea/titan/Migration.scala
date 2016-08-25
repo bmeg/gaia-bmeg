@@ -1,6 +1,6 @@
 package gaea.titan
 
-import gaea.feature.Hugo
+// import gaea.feature.Hugo
 
 import com.thinkaurelius.titan.core.TitanGraph
 import gremlin.scala._

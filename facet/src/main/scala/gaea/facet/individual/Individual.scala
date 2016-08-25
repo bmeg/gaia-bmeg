@@ -21,7 +21,7 @@ import scala.collection.JavaConversions._
 object IndividualFacet extends LazyLogging {
   lazy val graph = Titan.connection
 
-  val Name = Key[String]("name")
+  val Gid = Key[String]("gid")
   val TumorSite = Key[String]("submittedTumorSite")
 
   def findIndividualAttributes(graph: TitanGraph): Set[String] = {
@@ -31,9 +31,9 @@ object IndividualFacet extends LazyLogging {
   lazy val individualAttributes = findIndividualAttributes(graph)
 
   def individualSurvivalJson(individual: Vertex): Json = {
-    val values = individual.valueMap("name", "vitalStatus", "deathDaysTo", "submittedTumorType")
+    val values = individual.valueMap("gid", "vitalStatus", "deathDaysTo", "submittedTumorType")
 
-    val json = ("name", jString(values("name").asInstanceOf[String])) ->:
+    val json = ("name", jString(values("gid").asInstanceOf[String])) ->:
       ("status", jString(values("vitalStatus").asInstanceOf[String])) ->:
       ("tumor", jString(values.get("submittedTumorType").getOrElse("unknown").asInstanceOf[String])) ->:
       jEmptyObject
@@ -46,12 +46,12 @@ object IndividualFacet extends LazyLogging {
 
   val service = HttpService {
     case GET -> Root / "tumor" / tumorType =>
-      Ok(graph.V.has(Name, "type:individual").out("hasInstance").has(TumorSite, tumorType).value(Name).toList.asJson)
+      Ok(graph.V.has(Gid, "type:individual").out("hasInstance").has(TumorSite, tumorType).value(Gid).toList.asJson)
 
     case request @ POST -> Root / "survival" =>
       request.as[Json].flatMap { json =>
         val individualNames = json.as[List[String]].getOr(List[String]())
-        val individualVertexes = graph.V.hasLabel("individual").has(Name, within(individualNames:_*)).toList
+        val individualVertexes = graph.V.hasLabel("individual").has(Gid, within(individualNames:_*)).toList
         val individualJson = individualVertexes.foldLeft(jEmptyArray) {(array, vertex) =>
           individualSurvivalJson(vertex) -->>: array
         }

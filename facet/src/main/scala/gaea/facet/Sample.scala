@@ -22,7 +22,7 @@ import scala.collection.JavaConversions._
 
 object SampleFacet extends LazyLogging {
   lazy val graph = Titan.connection
-  val Name = Key[String]("name")
+  val Gid = Key[String]("gid")
   val ignoreMutations = List[String]("5'Flank", "IGR", "Silent", "Intron")
 
   val service = HttpService {
