@@ -1,7 +1,7 @@
 package gaea.facet
 
 import gaea.titan.Titan
-import gaea.feature.Feature
+import gaea.gene.Gene
 import gaea.signature.Signature
 import gaea.collection.Collection._
 
@@ -26,7 +26,7 @@ object SampleFacet extends LazyLogging {
   val ignoreMutations = List[String]("5'Flank", "IGR", "Silent", "Intron")
 
   val service = HttpService {
-    case request @ POST -> Root / "variant" / feature =>
+    case request @ POST -> Root / "variant" / gene =>
       request.as[Json].flatMap { json =>
         Ok("yellow".asJson)
       }

@@ -1,4 +1,4 @@
-package gaea.feature
+package gaea.gene
 
 import gaea.titan.Titan
 import com.thinkaurelius.titan.core.TitanGraph
@@ -6,20 +6,20 @@ import gremlin.scala._
 import gaea.collection.Collection._
 import org.apache.tinkerpop.gremlin.process.traversal.P._
 
-object Feature {
+object Gene {
   val Gid = Key[String]("gid")
-  val synonymPrefix = "featureSynonym:"
+  val synonymPrefix = "geneSynonym:"
 
   val individualStep = StepLabel[Vertex]()
   val variantStep = StepLabel[Vertex]()
-  val featureStep = StepLabel[Vertex]()
+  val geneStep = StepLabel[Vertex]()
 
   def synonymQuery(graph: TitanGraph) (name: String): GremlinScala[Vertex, shapeless.HNil] = {
-    graph.V.hasLabel("featureSynonym").has(Gid, synonymPrefix + name).out("synonymFor")
+    graph.V.hasLabel("geneSynonym").has(Gid, synonymPrefix + name).out("synonymFor")
   }
 
   def synonymsQuery(graph: TitanGraph) (names: Seq[String]): GremlinScala[Vertex, shapeless.HNil] = {
-    graph.V.hasLabel("featureSynonym").has(Gid, within(names.map(synonymPrefix + _):_*)).out("synonymFor")
+    graph.V.hasLabel("geneSynonym").has(Gid, within(names.map(synonymPrefix + _):_*)).out("synonymFor")
   }
 
   def findSynonymVertex(graph: TitanGraph) (name: String): Option[Vertex] = {
@@ -31,60 +31,60 @@ object Feature {
     values.map(vertex => Titan.removePrefix(vertex("gid").asInstanceOf[String]))
   }
 
-  def findFeature(graph: TitanGraph) (name: String): Vertex = {
+  def findGene(graph: TitanGraph) (name: String): Vertex = {
     val inner = Titan.removePrefix(name)
-    val synonymName = "featureSynonym:" + inner
-    val featureName = "feature:" + inner
+    val synonymName = "geneSynonym:" + inner
+    val geneName = "gene:" + inner
     findSynonymVertex(graph) (inner).getOrElse {
-      val synonym = graph.V.hasLabel("featureSynonym").has(Gid, synonymName).headOption.getOrElse {
-        graph + ("featureSynonym", Gid -> synonymName)
+      val synonym = graph.V.hasLabel("geneSynonym").has(Gid, synonymName).headOption.getOrElse {
+        graph + ("geneSynonym", Gid -> synonymName)
       }
 
-      val feature = graph.V.hasLabel("feature").has(Gid, featureName).headOption.getOrElse {
-        graph + ("feature", Gid -> featureName)
+      val gene = graph.V.hasLabel("gene").has(Gid, geneName).headOption.getOrElse {
+        graph + ("gene", Gid -> geneName)
       }
 
-      synonym --- ("synonymFor") --> feature
-      feature
+      synonym --- ("synonymFor") --> gene
+      gene
     }
   }
 
-  def findIndividualsWithVariants(graph: TitanGraph) (feature: String): GremlinScala[Vertex, shapeless.HNil] = {
+  def findIndividualsWithVariants(graph: TitanGraph) (gene: String): GremlinScala[Vertex, shapeless.HNil] = {
     graph.V
-      .hasLabel("feature")
-      .has(Gid, "feature:" + feature)
-      .in("inFeature")
+      .hasLabel("gene")
+      .has(Gid, "gene:" + gene)
+      .in("inGene")
       .out("effectOf")
       .out("tumorSample")
       .out("sampleOf")
   }
 
-  def findTumors(graph: TitanGraph) (feature: String): List[String] = {
-    findIndividualsWithVariants(graph) (feature)
+  def findTumors(graph: TitanGraph) (gene: String): List[String] = {
+    findIndividualsWithVariants(graph) (gene)
       .value[String]("submittedTumorSite")
       .toList
   }
 
-  def findTumorCounts(graph: TitanGraph) (feature: String): Map[String, Int] = {
-    groupCount[String](findTumors(graph) (feature))
+  def findTumorCounts(graph: TitanGraph) (gene: String): Map[String, Int] = {
+    groupCount[String](findTumors(graph) (gene))
   }
 
   def findVariantsForIndividuals(graph: TitanGraph) (individuals: Seq[String]) (genes: Seq[String]): Seq[Tuple3[String, String, String]] = {
-    val query = graph.V.hasLabel("feature")
-      .has(Gid, within(genes.map(synonymPrefix + _):_*)).as(featureStep)
-      .in("inFeature")
+    val query = graph.V.hasLabel("gene")
+      .has(Gid, within(genes.map(synonymPrefix + _):_*)).as(geneStep)
+      .in("inGene")
       .out("effectOf").as(variantStep)
       .out("tumorSample")
       .out("sampleOf")
       .has(Gid, within(individuals:_*)).as(individualStep)
-      .select((individualStep, variantStep, featureStep))
+      .select((individualStep, variantStep, geneStep))
       .toList
 
     query.map { q =>
-      val (individual, variant, feature) = q
+      val (individual, variant, gene) = q
       (individual.property("gid").orElse(""),
         variant.property("variantType").orElse(""),
-        feature.property("gid").orElse(""))
+        gene.property("gid").orElse(""))
     }
   }
 }

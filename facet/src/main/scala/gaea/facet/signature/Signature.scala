@@ -1,7 +1,7 @@
 package gaea.facet
 
 import gaea.titan.Titan
-import gaea.feature.Feature
+import gaea.gene.Gene
 import gaea.signature.Signature
 import gaea.collection.Collection._
 import gaea.facet.event.Event
@@ -33,22 +33,22 @@ object SignatureFacet extends LazyLogging {
     case request @ POST -> Root / "gene" =>
       request.as[Json].flatMap { json => 
         val geneNames = json.as[List[String]].getOr(List[String]())
-        val featureVertexes = geneNames.map((name: String) => Feature.findSynonymVertex(graph) (name)).flatten
-        val featureNames = featureVertexes.map(feature => Titan.removePrefix(feature.property(Gid).orElse("")))
-        val signatureVertexes = featureVertexes.flatMap(_.in("hasCoefficient").toList).toSet
-        val signatureJson = signatureVertexes.map(Event.signatureToJson(featureNames))
+        val geneVertexes = geneNames.map((name: String) => Gene.findSynonymVertex(graph) (name)).flatten
+        val geneNames = geneVertexes.map(gene => Titan.removePrefix(gene.property(Gid).orElse("")))
+        val signatureVertexes = geneVertexes.flatMap(_.in("hasCoefficient").toList).toSet
+        val signatureJson = signatureVertexes.map(Event.signatureToJson(geneNames))
         Ok(signatureJson.asJson)
       }
 
     case request @ POST -> Root / "mutation" =>
       request.as[Json].flatMap { json =>
         val geneNames = json.as[List[String]].getOr(List[String]())
-        val featureVertexes = Feature.synonymsQuery(graph) (geneNames).toList
-        val featureNames = featureVertexes.map(feature => Titan.removePrefix(feature.property(Gid).orElse("")))
+        val geneVertexes = Gene.synonymsQuery(graph) (geneNames).toList
+        val geneNames = geneVertexes.map(gene => Titan.removePrefix(gene.property(Gid).orElse("")))
         val significance = Signature.variantSignificance(graph) (geneNames).filter(_._2 < 0.05)
         val signatureVertexes = graph.V.has(Gid, within(significance.keys.toList:_*)).toList
         val signatureJson = signatureVertexes.map { vertex =>
-          Event.significanceToJson(featureNames) (vertex) (significance(vertex.property("gid").orElse("")))
+          Event.significanceToJson(geneNames) (vertex) (significance(vertex.property("gid").orElse("")))
         }
 
         Ok(signatureJson.asJson)
@@ -84,7 +84,7 @@ object SignatureFacet extends LazyLogging {
           (individual.property("gid").orElse(""), expression, coefficients)
         }
 
-        val mutationData = Feature.findVariantsForIndividuals(graph) (individualNames.toList) (mutationNames)
+        val mutationData = Gene.findVariantsForIndividuals(graph) (individualNames.toList) (mutationNames)
           .groupBy(_._3)
 
         val levelData = levelQuery.map { q =>

@@ -22,8 +22,8 @@ object Event {
 
   def coefficientsToJson(coefficients: Map[String, Double]) (key: String) (value: String): Json = {
     coefficients.foldLeft(jEmptyArray) { (json, coefficient) =>
-      val (feature, level) = coefficient
-      val pair = (key, jString(feature)) ->: (value, jNumber(level).getOrElse(jZero)) ->: jEmptyObject
+      val (gene, level) = coefficient
+      val pair = (key, jString(gene)) ->: (value, jNumber(level).getOrElse(jZero)) ->: jEmptyObject
       pair -->>: json
     }
   }
@@ -37,22 +37,22 @@ object Event {
   }
 
   def eventMetadata(eventID: String, eventType: String, datatype: String, weights: Map[String, Double]): Json = {
-    val weightsJson = coefficientsToJson(weights) ("feature") ("weight")
-    ("eventID", jString(eventID)) ->: ("eventType", jString(eventType)) ->: ("datatype", jString(datatype)) ->: ("featureWeights", weightsJson) ->: jEmptyObject
+    val weightsJson = coefficientsToJson(weights) ("gene") ("weight")
+    ("eventID", jString(eventID)) ->: ("eventType", jString(eventType)) ->: ("datatype", jString(datatype)) ->: ("geneWeights", weightsJson) ->: jEmptyObject
   }
 
-  def signatureToJson(featureNames: List[String]) (vertex: Vertex): Json = {
+  def signatureToJson(geneNames: List[String]) (vertex: Vertex): Json = {
     val coefficients = Signature.dehydrateCoefficients(vertex) ("coefficients")
-    val relevant = selectKeys[String, Double](coefficients) (featureNames) (0.0)
+    val relevant = selectKeys[String, Double](coefficients) (geneNames) (0.0)
     val score = relevant.values.foldLeft(0.0) ((s, v) => s + Math.abs(v))
     val signatureName = vertex.property(Gid).orElse("no name")
     val metadata = eventMetadata(signatureName, "drug sensitivity signature", "NUMERIC", relevant)
     ("score", jNumber(score).getOrElse(jZero)) ->: ("signatureMetadata", metadata) ->: jEmptyObject
   }
 
-  def significanceToJson(featureNames: List[String]) (vertex: Vertex) (significance: Double): Json = {
+  def significanceToJson(geneNames: List[String]) (vertex: Vertex) (significance: Double): Json = {
     val coefficients = Signature.dehydrateCoefficients(vertex) ("coefficients")
-    val relevant = selectKeys[String, Double](coefficients) (featureNames) (0.0)
+    val relevant = selectKeys[String, Double](coefficients) (geneNames) (0.0)
     val signatureName = vertex.property(Gid).orElse("no name")
     val metadata = eventMetadata(signatureName, "significance to mutation", "NUMERIC", relevant)
     ("significance", jNumber(significance).getOrElse(jZero)) ->: ("signatureMetadata", metadata) ->: jEmptyObject

@@ -1,7 +1,7 @@
 package gaea.facet
 
 import gaea.titan.Titan
-import gaea.feature.Feature
+import gaea.gene.Gene
 import gaea.collection.Collection._
 
 import org.http4s._
@@ -19,7 +19,7 @@ import org.http4s.argonaut._
 
 import scala.collection.JavaConversions._
 
-object FeatureFacet extends LazyLogging {
+object GeneFacet extends LazyLogging {
   lazy val graph = Titan.connection
 
   val service = HttpService {
@@ -27,12 +27,12 @@ object FeatureFacet extends LazyLogging {
       Ok(jSingleObject("message", jString(s"Hello, ${name}")))
 
     case GET -> Root / "synonym" / name =>
-      val synonym = Feature.findSynonym(graph) (name).getOrElse {
+      val synonym = Gene.findSynonym(graph) (name).getOrElse {
         "no synonym found"
       }
       Ok(jSingleObject(name, jString(synonym)))
 
-    case GET -> Root / feature / "tumor" / "counts" =>
-      Ok(Feature.findTumorCounts(graph) (feature).asJson)
+    case GET -> Root / gene / "tumor" / "counts" =>
+      Ok(Gene.findTumorCounts(graph) (gene).asJson)
   }
 }

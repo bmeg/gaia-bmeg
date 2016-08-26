@@ -1,6 +1,6 @@
 package gaea.signature
 
-import gaea.feature.Feature
+import gaea.gene.Gene
 import gaea.titan.Titan
 import gaea.collection.Collection._
 
@@ -45,12 +45,12 @@ object Signature {
     signatureVertexes.map((vertex) => (vertex, dehydrateCoefficients(vertex) ("coefficients")))
   }
 
-  def linkSignaturesToFeatures(graph: TitanGraph): List[Tuple2[Vertex, Map[String, Double]]] = {
+  def linkSignaturesToGenes(graph: TitanGraph): List[Tuple2[Vertex, Map[String, Double]]] = {
     val signatures = findSignatures(graph)
     for ((signatureVertex, coefficients) <- signatures) {
-      for ((feature, coefficient) <- coefficients) {
-        val featureVertex = Feature.findFeature(graph) ("feature:" + feature)
-        signatureVertex --- ("hasCoefficient", Coefficient -> coefficient) --> featureVertex
+      for ((gene, coefficient) <- coefficients) {
+        val geneVertex = Gene.findGene(graph) ("gene:" + gene)
+        signatureVertex --- ("hasCoefficient", Coefficient -> coefficient) --> geneVertex
       }
 
       graph.tx.commit()
@@ -60,20 +60,20 @@ object Signature {
   }
 
   def signatureLevel
-    (features: Vector[String])
+    (genes: Vector[String])
     (coefficients: Vector[Double])
     (intercept: Double)
     (expressions: Map[String, Double])
       : Double = {
 
-    val relevantFeatures = selectKeys[String, Double](expressions) (features) (0.0)
-    val (genes, levels) = splitMap[String, Double](relevantFeatures)
+    val relevantGenes = selectKeys[String, Double](expressions) (genes) (0.0)
+    val (names, levels) = splitMap[String, Double](relevantGenes)
 
     dotProduct(coefficients) (intercept) (levels)
   }
 
   def signatureAppliesTo
-    (features: Vector[String])
+    (genes: Vector[String])
     (coefficients: Vector[Double])
     (intercept: Double)
     (threshold: Double)
@@ -81,7 +81,7 @@ object Signature {
       : Boolean = {
 
     val (vertex, expressions) = expression
-    signatureLevel(features) (coefficients) (intercept) (expressions) > threshold
+    signatureLevel(genes) (coefficients) (intercept) (expressions) > threshold
   }
 
   def applyExpressionToSignatures
@@ -96,8 +96,8 @@ object Signature {
     for (signature <- signatures) {
       val (signatureVertex, coefficients) = signature
       val intercept = signatureVertex.property(Intercept).orElse(0.0)
-      val (features, values) = splitMap[String, Double](coefficients)
-      val level = signatureLevel(features) (values) (intercept) (normalized)
+      val (genes, values) = splitMap[String, Double](coefficients)
+      val level = signatureLevel(genes) (values) (intercept) (normalized)
 
       signatureVertex --- ("appliesTo", Level -> level) --> expressionVertex
     }
@@ -120,9 +120,9 @@ object Signature {
     graph
   }
 
-  // def variantSignificance(graph: TitanGraph) (feature: String) (signature: String): Double = {
-  //   val variantLevels = Feature.synonymQuery(graph) (feature)
-  //     .in("inFeature")
+  // def variantSignificance(graph: TitanGraph) (gene: String) (signature: String): Double = {
+  //   val variantLevels = Gene.synonymQuery(graph) (gene)
+  //     .in("inGene")
   //     .out("effectOf")
   //     .out("tumorSample")
   //     .in("expressionFor").as(expressionStep)
@@ -214,9 +214,9 @@ object Signature {
 
   // Eventually filter out these variantClassification values: List("5'Flank", "IGR", "Silent", "Intron")`
 
-  def variantLevels(graph: TitanGraph) (features: Seq[String]): Map[String, Seq[Double]] = {
-    val levelPairs = Feature.synonymsQuery(graph) (features)
-      .in("inFeature")
+  def variantLevels(graph: TitanGraph) (genes: Seq[String]): Map[String, Seq[Double]] = {
+    val levelPairs = Gene.synonymsQuery(graph) (genes)
+      .in("inGene")
       .out("effectOf")
       .out("tumorSample")
       .in("expressionFor").as(expressionStep)
@@ -228,15 +228,15 @@ object Signature {
     extractLevels(levelPairs)
   }
 
-  def variantSignificance(graph: TitanGraph) (features: Seq[String]): Map[String, Double] = {
-    val variants = variantLevels(graph) (features)
+  def variantSignificance(graph: TitanGraph) (genes: Seq[String]): Map[String, Double] = {
+    val variants = variantLevels(graph) (genes)
     variants.map { variant =>
-      val featureLevels = variant._2
+      val geneLevels = variant._2
       val back = background(variant._1)
-      val backgroundLevels = shear[Double](featureLevels, back)
-      val p = ks.kolmogorovSmirnovTest(backgroundLevels.toArray, featureLevels.toArray, true)
+      val backgroundLevels = shear[Double](geneLevels, back)
+      val p = ks.kolmogorovSmirnovTest(backgroundLevels.toArray, geneLevels.toArray, true)
 
-      println("background: " + backgroundLevels.size + " - first: " + backgroundLevels.head + " - levels: " + featureLevels.size + " - total: " + back.toSet.size + " - shorn: " + back.toSet.diff(featureLevels.toSet).size)
+      println("background: " + backgroundLevels.size + " - first: " + backgroundLevels.head + " - levels: " + geneLevels.size + " - total: " + back.toSet.size + " - shorn: " + back.toSet.diff(geneLevels.toSet).size)
 
       (variant._1, p)
     }
@@ -282,10 +282,10 @@ object Signature {
       : TitanGraph = {
 
     val (signatureVertex, coefficients) = signature
-    val (features, values) = splitMap[String, Double](coefficients)
+    val (genes, values) = splitMap[String, Double](coefficients)
     val intercept = signatureVertex.property(Intercept).orElse(0.0)
 
-    val relevant = expressions.filter(signatureAppliesTo(features) (values) (intercept) (0.5))
+    val relevant = expressions.filter(signatureAppliesTo(genes) (values) (intercept) (0.5))
 
     for (expression <- relevant) {
       val (expressionVertex, levels) = expression
