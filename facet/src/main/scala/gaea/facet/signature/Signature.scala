@@ -32,8 +32,8 @@ object SignatureFacet extends LazyLogging {
   val service = HttpService {
     case request @ POST -> Root / "gene" =>
       request.as[Json].flatMap { json => 
-        val geneNames = json.as[List[String]].getOr(List[String]())
-        val geneVertexes = geneNames.map((name: String) => Gene.findSynonymVertex(graph) (name)).flatten
+        val synonymNames = json.as[List[String]].getOr(List[String]())
+        val geneVertexes = synonymNames.map((name: String) => Gene.findSynonymVertex(graph) (name)).flatten
         val geneNames = geneVertexes.map(gene => Titan.removePrefix(gene.property(Gid).orElse("")))
         val signatureVertexes = geneVertexes.flatMap(_.in("hasCoefficient").toList).toSet
         val signatureJson = signatureVertexes.map(Event.signatureToJson(geneNames))
@@ -42,8 +42,8 @@ object SignatureFacet extends LazyLogging {
 
     case request @ POST -> Root / "mutation" =>
       request.as[Json].flatMap { json =>
-        val geneNames = json.as[List[String]].getOr(List[String]())
-        val geneVertexes = Gene.synonymsQuery(graph) (geneNames).toList
+        val synonymNames = json.as[List[String]].getOr(List[String]())
+        val geneVertexes = Gene.synonymsQuery(graph) (synonymNames).toList
         val geneNames = geneVertexes.map(gene => Titan.removePrefix(gene.property(Gid).orElse("")))
         val significance = Signature.variantSignificance(graph) (geneNames).filter(_._2 < 0.05)
         val signatureVertexes = graph.V.has(Gid, within(significance.keys.toList:_*)).toList
