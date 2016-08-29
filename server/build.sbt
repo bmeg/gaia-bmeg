@@ -7,9 +7,9 @@ resolvers += "Local Maven Repository" at "file://"+Path.userHome.absolutePath+"/
 
 resolvers ++= Seq(
   "Akka Repository" at "http://repo.akka.io/releases/",
-  "Sonatype Snapshots" at "http://oss.sonatype.org/content/repositories/snapshots",
-  "Sonatype Releases" at "http://oss.sonatype.org/content/repositories/releases",
-  "Twitter Maven Repo" at "http://maven.twttr.com",
+  "Sonatype Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+  "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases",
+  "Twitter Maven Repo" at "https://maven.twttr.com",
   "GAEA Depends Repo" at "https://github.com/bmeg/gaea-depends/raw/master/"
 )
 
