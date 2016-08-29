@@ -14,6 +14,7 @@ object TitanMigration {
 
     "idIndex" -> Map("id" -> classOf[String]),
     "gidIndex" -> Map("gid" -> classOf[String]),
+    "symbolIndex" -> Map("symbol" -> classOf[String]),
     "typeIndex" -> Map("type" -> classOf[String]),
     "tumorIndex" -> Map("submittedTumorSite" -> classOf[String])
   )
