@@ -27,8 +27,8 @@ We will need to create some indexes... do that now:
 ```
 import gaea.titan.Titan
 val graph = Titan.defaultGraph()
-Titan.makeIndex(graph) (Map("gid" -> classOf[String]))
-Titan.makeIndex(graph) (Map("symbol" -> classOf[String]))
+Titan.makeIndex(graph) ("gidIndex") (Map("gid" -> classOf[String]))
+Titan.makeIndex(graph) ("symbolIndex") (Map("symbol" -> classOf[String]))
 ```
 
 Then, let's ingest some vertexes. For this example, we will be pulling the pancreatic data from TCGA.
