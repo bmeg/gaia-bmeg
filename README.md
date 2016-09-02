@@ -34,7 +34,7 @@ Titan.makeIndex(graph) ("symbolIndex") (Map("symbol" -> classOf[String]))
 Then, let's ingest some vertexes. For this example, we will be pulling the pancreatic data from TCGA.
 
 ```
-val ingestor = gaea.kafka.Ingestor("10.96.11.91:9092", "gaea-bmeg-test", List("gaea-hugo", "gaea-paad"))
+val ingestor = new gaea.kafka.Ingestor("10.96.11.91:9092", "gaea-bmeg-test", List("gaea-hugo", "gaea-paad"))
 ingestor.ingest()
 ```
 
