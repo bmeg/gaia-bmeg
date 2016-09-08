@@ -62,7 +62,7 @@ function Pie() {
   }
 }
 
-var FeatureInput = React.createClass({
+var GeneInput = React.createClass({
   getInitialState: function() {
     return {
       input: "",
@@ -76,7 +76,7 @@ var FeatureInput = React.createClass({
     var gene = event.target.value
     this.setState({input: gene})
 
-    var url = "/gaea/feature/" + gene + "/tumor/counts";
+    var url = "/gaea/gene/" + gene + "/tumor/counts";
 
     $.ajax({
       url: url,
@@ -104,8 +104,8 @@ var FeatureInput = React.createClass({
       <div>
         <form onChange={(e) => this.changeInput(e)}>
           <div className="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-            <input id="feature-text-input" type="text" name="feature" className="mdl-textfield__input" />
-            <label className="mdl-textfield__label" htmlFor="feature-text-input">Gene...</label>
+            <input id="gene-text-input" type="text" name="gene" className="mdl-textfield__input" />
+            <label className="mdl-textfield__label" htmlFor="gene-text-input">Gene...</label>
           </div>
         </form>
         <p>Showing tumor sites for variants in: {this.state.lastMatch}</p>
@@ -114,4 +114,4 @@ var FeatureInput = React.createClass({
   }
 });
 
-ReactDOM.render(<FeatureInput />, document.getElementById('feature-input'));
+ReactDOM.render(<GeneInput />, document.getElementById('gene-input'));

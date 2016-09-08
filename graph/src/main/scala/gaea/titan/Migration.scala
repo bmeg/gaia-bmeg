@@ -16,11 +16,11 @@ object TitanMigration {
     "gidIndex" -> Map("gid" -> classOf[String]),
     "symbolIndex" -> Map("symbol" -> classOf[String]),
     "typeIndex" -> Map("type" -> classOf[String]),
-    "tumorIndex" -> Map("submittedTumorSite" -> classOf[String])
+    "tumorIndex" -> Map("tumorSite" -> classOf[String])
   )
 
   def configuration(): Map[String, String] = {
-    Map("storage.cassandra.keyspace" -> "bmeg")
+    Map("storage.cassandra.keyspace" -> "gaea")
   }
 
   def migrate(): TitanGraph = {
