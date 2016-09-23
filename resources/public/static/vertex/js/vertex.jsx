@@ -4,6 +4,7 @@ var snipPrefix = function(s) {
 
 var exploreVertex = function(page, gid) {
   var url = "/gaea/vertex/find/" + gid;
+  window.location.hash = gid
 
   $.ajax({
     url: url,
@@ -125,9 +126,12 @@ var VertexView = React.createClass({
 
 var VertexInput = React.createClass({
   getInitialState: function() {
+    var hash = window.location.hash.substr(1);
+    exploreVertex(this, hash);
+
     return {
-      input: "",
-      lastMatch: "none",
+      input: hash,
+      lastMatch: hash,
       back: '',
       vertex: {}
     };
@@ -151,7 +155,7 @@ var VertexInput = React.createClass({
     var vertex = <div className="empty-vertex"></div>;
     if (this.state.vertex['properties']) {
       if (this.state.vertex.properties.type === 'Individual') {
-        vertex = <AlternateView navigate={navigate} vertex={this.state.vertex} back={this.state.back} />
+        vertex = <VertexView navigate={navigate} vertex={this.state.vertex} back={this.state.back}/>
       } else {
         vertex = <VertexView navigate={navigate} vertex={this.state.vertex} />
       }
@@ -159,12 +163,10 @@ var VertexInput = React.createClass({
 
     return (
       <div>
-        <form onChange={(e) => this.changeInput(e)}>
-          <div className="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-            <label className="mdl-textfield__label" htmlFor="vertex-gid-input">Enter a vertex GID</label>
-            <input id="vertex-gid-input" type="text" name="gid" className="mdl-textfield__input" />
-          </div>
-        </form>
+        <div className="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+          <label className="mdl-textfield__label" htmlFor="vertex-gid-input">Enter a vertex GID</label>
+          <input id="vertex-gid-input" type="text" name="gid" className="mdl-textfield__input" onChange={(e) => this.changeInput(e)} value={this.state.input} />
+        </div>
         {vertex}
       </div>
     );
