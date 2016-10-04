@@ -1,14 +1,13 @@
 package gaea.signature
 
+import gaea.graph._
 import gaea.gene.Gene
-import gaea.titan.Titan
 import gaea.collection.Collection._
 
 import ladder.statistics.Statistics
 import org.apache.commons.math3.stat.inference._
 
 import gremlin.scala._
-import com.thinkaurelius.titan.core.TitanGraph
 import org.apache.tinkerpop.gremlin.process.traversal.Order
 import org.apache.tinkerpop.gremlin.process.traversal.P._
 
@@ -16,7 +15,6 @@ import scalaz._, Scalaz._
 import argonaut._, Argonaut._
 
 object Signature {
-  val Gid = Key[String]("gid")
   val Intercept = Key[Double]("intercept")
   val Expressions = Key[String]("expressions")
   val Coefficient = Key[Double]("coefficient")
@@ -33,19 +31,22 @@ object Signature {
   val emptyMap = Map[String, Double]()
 
   val ks = new KolmogorovSmirnovTest()
-  val background = signatureBackground(Titan.defaultGraph())
+
+  lazy val findBackground: GaeaGraph => Map[String, Seq[Double]] = memoize { graph =>
+    signatureBackground(graph)
+  }
 
   def dehydrateCoefficients(vertex: Vertex) (key: String): Map[String, Double] = {
     val raw = vertex.property(key).orElse("")
     Parse.parseOption(raw).map(_.as[Map[String, Double]].getOr(emptyMap)).getOrElse(emptyMap)
   }
 
-  def findSignatures(graph: TitanGraph): List[Tuple2[Vertex, Map[String, Double]]] = {
-    val signatureVertexes = Titan.typeVertexes(graph) ("linearSignature")
+  def findSignatures(graph: GaeaGraph): List[Tuple2[Vertex, Map[String, Double]]] = {
+    val signatureVertexes = graph.typeVertexes("linearSignature")
     signatureVertexes.map((vertex) => (vertex, dehydrateCoefficients(vertex) ("coefficients")))
   }
 
-  def linkSignaturesToGenes(graph: TitanGraph): List[Tuple2[Vertex, Map[String, Double]]] = {
+  def linkSignaturesToGenes(graph: GaeaGraph): List[Tuple2[Vertex, Map[String, Double]]] = {
     val signatures = findSignatures(graph)
     for ((signatureVertex, coefficients) <- signatures) {
       for ((gene, coefficient) <- coefficients) {
@@ -53,7 +54,7 @@ object Signature {
         signatureVertex --- ("hasCoefficient", Coefficient -> coefficient) --> geneVertex
       }
 
-      graph.tx.commit()
+      graph.commit()
     }
 
     signatures
@@ -85,10 +86,10 @@ object Signature {
   }
 
   def applyExpressionToSignatures
-    (graph: TitanGraph)
+    (graph: GaeaGraph)
     (expressionVertex: Vertex)
     (signatures: List[Tuple2[Vertex, Map[String, Double]]])
-      : TitanGraph = {
+      : GaeaGraph = {
 
     val levels = dehydrateCoefficients(expressionVertex) ("expressions")
     val normalized = Statistics.exponentialNormalization(levels)
@@ -102,16 +103,16 @@ object Signature {
       signatureVertex --- ("appliesTo", Level -> level) --> expressionVertex
     }
 
-    graph.tx.commit()
+    graph.commit()
     graph
   }
 
   def applyExpressionsToSignatures
-    (graph: TitanGraph)
+    (graph: GaeaGraph)
     (signatures: List[Tuple2[Vertex, Map[String, Double]]])
-      : TitanGraph = {
+      : GaeaGraph = {
 
-    val expressionVertexes = Titan.typeVertexes(graph) ("geneExpression")
+    val expressionVertexes = graph.typeVertexes("geneExpression")
 
     for (expressionVertex <- expressionVertexes) {
       applyExpressionToSignatures(graph) (expressionVertex) (signatures)
@@ -120,34 +121,7 @@ object Signature {
     graph
   }
 
-  // def variantSignificance(graph: TitanGraph) (gene: String) (signature: String): Double = {
-  //   val variantLevels = Gene.synonymQuery(graph) (gene)
-  //     .in("inGene")
-  //     .out("effectOf")
-  //     .out("tumorSample")
-  //     .in("expressionFor").as(expressionStep)
-  //     .inE("appliesTo").as(levelStep)
-  //     .outV
-  //     .has(Gid, "linearSignature:" + signature)
-  //     .select((expressionStep, levelStep))
-  //     .toList
-
-  //   val expressionNames = variantLevels.map(_._1.property("gid").orElse(""))
-  //   val signatureLevels = variantLevels.map(_._2.property("level").orElse(0.0))
-
-  //   val backgroundLevels = Titan.typeQuery(graph) ("geneExpression")
-  //     .has(Gid, without(expressionNames:_*))
-  //     .inE("appliesTo").as(levelStep)
-  //     .outV
-  //     .has(Gid, "linearSignature:" + signature)
-  //     .select(levelStep)
-  //     .value[Double]("level")
-  //     .toList
-
-  //   ks.kolmogorovSmirnovTest(signatureLevels.toArray, backgroundLevels.toArray)
-  // }
-
-  def signatureCorrelation(graph: TitanGraph) (a: String) (b: String): Tuple3[Vertex, Vertex, Double] = {
+  def signatureCorrelation(graph: GaeaGraph) (a: String) (b: String): Tuple3[Vertex, Vertex, Double] = {
     val query = graph.V.has(Gid, within(List(a, b):_*)).as(signatureStep)
       .outE("appliesTo").as(levelStep)
       .inV.as(expressionStep)
@@ -174,14 +148,14 @@ object Signature {
     (levels(a).head._2, levels(b).head._2, score)
   }
 
-  def applySignatureCorrelation(graph: TitanGraph) (a: String) (b:String): Double = {
+  def applySignatureCorrelation(graph: GaeaGraph) (a: String) (b:String): Double = {
     val (vertexA, vertexB, score) = signatureCorrelation(graph) (a) (b)
     vertexA <-- ("correlatesTo") --> vertexB
-    graph.tx.commit()
+    graph.commit()
     score
   }
 
-  def correlateAllSignatures(graph: TitanGraph): TitanGraph = {
+  def correlateAllSignatures(graph: GaeaGraph): GaeaGraph = {
     val signatureNames = graph.V.hasLabel("type")
       .has(Gid, "type:linearSignature")
       .out("hasInstance")
@@ -202,8 +176,8 @@ object Signature {
     }.toMap
   }
 
-  def signatureBackground(graph: TitanGraph): Map[String, Seq[Double]] = {
-    val levelPairs = Titan.typeQuery(graph) ("geneExpression")
+  def signatureBackground(graph: GaeaGraph): Map[String, Seq[Double]] = {
+    val levelPairs = graph.typeQuery("geneExpression")
       .inE("appliesTo").as(levelStep)
       .outV.as(signatureStep)
       .select((signatureStep, levelStep))
@@ -214,7 +188,7 @@ object Signature {
 
   // Eventually filter out these variantClassification values: List("5'Flank", "IGR", "Silent", "Intron")`
 
-  def variantLevels(graph: TitanGraph) (genes: Seq[String]): Map[String, Seq[Double]] = {
+  def variantLevels(graph: GaeaGraph) (genes: Seq[String]): Map[String, Seq[Double]] = {
     val levelPairs = Gene.synonymsQuery(graph) (genes)
       .in("inGene")
       .out("effectOf")
@@ -228,10 +202,11 @@ object Signature {
     extractLevels(levelPairs)
   }
 
-  def variantSignificance(graph: TitanGraph) (genes: Seq[String]): Map[String, Double] = {
+  def variantSignificance(graph: GaeaGraph) (genes: Seq[String]): Map[String, Double] = {
     val variants = variantLevels(graph) (genes)
     variants.map { variant =>
       val geneLevels = variant._2
+      val background = findBackground(graph)
       val back = background(variant._1)
       val backgroundLevels = shear[Double](geneLevels, back)
       val p = ks.kolmogorovSmirnovTest(backgroundLevels.toArray, geneLevels.toArray, true)
@@ -243,7 +218,7 @@ object Signature {
   }
 
   def highestScoringSamples
-    (graph: TitanGraph)
+    (graph: GaeaGraph)
     (signatures: Seq[String])
     (limit: Long)
     (order: Order)
@@ -260,7 +235,7 @@ object Signature {
   }
 
   def individualScores
-    (graph: TitanGraph)
+    (graph: GaeaGraph)
     (individuals: Seq[String])
     (signatures: Seq[String])
       : Set[Tuple3[Vertex, Vertex, Edge]] = {
@@ -276,10 +251,10 @@ object Signature {
 
   // DEPRECATED as inefficient way to do things -----------------------------------------
   def applySignatureToExpressions
-    (graph: TitanGraph)
+    (graph: GaeaGraph)
     (signature: Tuple2[Vertex, Map[String, Double]])
     (expressions: List[Tuple2[Vertex, Map[String, Double]]])
-      : TitanGraph = {
+      : GaeaGraph = {
 
     val (signatureVertex, coefficients) = signature
     val (genes, values) = splitMap[String, Double](coefficients)
@@ -292,16 +267,16 @@ object Signature {
       signatureVertex --- ("appliesTo") --> expressionVertex
     }
 
-    graph.tx.commit()
+    graph.commit()
     graph
   }
 
   def applySignaturesToExpressions
-    (graph: TitanGraph)
+    (graph: GaeaGraph)
     (signatures: List[Tuple2[Vertex, Map[String, Double]]])
-      : TitanGraph = {
+      : GaeaGraph = {
 
-    val expressionVertexes = Titan.typeVertexes(graph) ("geneExpression")
+    val expressionVertexes = graph.typeVertexes("geneExpression")
     val expressions = expressionVertexes.map((vertex) => (vertex, dehydrateCoefficients(vertex) ("expressions")))
 
     for (signature <- signatures) {

@@ -1,10 +1,10 @@
-package gaea.titan
+package gaea.graph.migration
 
-import com.thinkaurelius.titan.core.TitanGraph
+import gaea.graph._
 import gremlin.scala._
 import java.lang.{Long => Llong}
 
-object TitanMigration {
+object GaeaBmegMigration {
   val indexSpec = Map(
     "positionIndex" -> Map(
       "chromosome" -> classOf[String],
@@ -19,14 +19,7 @@ object TitanMigration {
     "tumorIndex" -> Map("tumorSite" -> classOf[String])
   )
 
-  def configuration(): Map[String, String] = {
-    Map("storage.cassandra.keyspace" -> "gaea")
-  }
-
-  def migrate(): TitanGraph = {
-    val config = Titan.configuration(configuration())
-    val graph = Titan.connect(config)
-    Titan.makeIndexes(graph) (indexSpec)
-    graph
+  def migrate(graph: GaeaGraph): Unit = {
+    graph.makeIndexes(indexSpec)
   }
 }

@@ -1,19 +1,17 @@
 package gaea.facet.event
 
-import gaea.titan.Titan
+import gaea.graph._
 import gaea.signature.Signature
 import gaea.collection.Collection._
 
 import _root_.argonaut._, Argonaut._
 import org.http4s.argonaut._
 
-import com.thinkaurelius.titan.core.TitanGraph
 import gremlin.scala._
 
 import scala.collection.JavaConversions._
 
 object Event {
-  val Gid = Key[String]("gid")
   val ilog2 = 1.0 / scala.math.log(2)
 
   def log2(x: Double): Double = {
@@ -76,7 +74,7 @@ object Event {
   }
 
   def mutationEvent(mutations: Seq[Tuple3[String, String, String]]) (gene: String): Json = {
-    val metadata = eventMetadata(Titan.removePrefix(gene), "mutation call", "STRING", Map[String, Double]())
+    val metadata = eventMetadata(Gid.removePrefix(gene), "mutation call", "STRING", Map[String, Double]())
     val samples = mutations.groupBy(_._1)
     val variants = samples.map { s =>
       val (individual, variants) = s
