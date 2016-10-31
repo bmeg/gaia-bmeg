@@ -1,0 +1,11 @@
+language: scala
+scala:
+   - 2.11.2
+jdk:
+  - oraclejdk8
+env:
+  - CI_HOME=`pwd`
+
+script:
+  - cd $CI_HOME && sbt compile
+  - sbt test
