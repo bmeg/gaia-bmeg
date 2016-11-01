@@ -41,7 +41,16 @@ object Cohort {
   }
 
   def cohortVariants(graph: GaeaGraph) (cohort: String): Seq[Seq[String]] = {
-    val variants = graph.V.hasLabel("cohort").has(Gid, "cohort:" + cohort).out("hasMember").as(sampleStep).in("tumorSample").in("effectOf").out("inGene").value[String]("symbol").as(geneStep).select((sampleStep, geneStep)).toList
+    val variants = graph.V
+      .hasLabel("cohort")
+      .has(Gid, "cohort:" + cohort)
+      .out("hasMember").as(sampleStep)
+      .in("tumorSample")
+      .in("effectOf")
+      .out("inGene")
+      .value[String]("symbol").as(geneStep)
+      .select((sampleStep, geneStep)).toList
+
     val samples = groupAs(variants) (_._1.property("gid").orElse("")) (_._2)
     val base = new VariantBuilder(List[String](), List[List[String]]())
     samples.foldLeft(base) { case (builder, (sample, genes)) =>
