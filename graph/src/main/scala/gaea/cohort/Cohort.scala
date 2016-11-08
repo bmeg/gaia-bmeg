@@ -9,6 +9,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.P._
 object Cohort {
   val sampleStep = StepLabel[Vertex]()
   val geneStep = StepLabel[String]()
+  val biosamplePrefix = "biosample:".r
 
   class VariantBuilder(header: List[String], data: List[List[String]]) {
     def addSample(sample: String) (variants: List[String]): VariantBuilder = {
@@ -48,10 +49,12 @@ object Cohort {
       .in("tumorSample")
       .in("effectOf")
       .out("inGene")
-      .value[String]("symbol").as(geneStep)
+      .value[String]("gid").as(geneStep)
+      // .value[String]("symbol").as(geneStep)
       .select((sampleStep, geneStep)).toList
 
-    val samples = groupAs(variants) (_._1.property("gid").orElse("")) (_._2)
+    // val samples = groupAs(variants) (_._1.property("gid").orElse("")) (_._2.substring(5))
+    val samples = groupAs(variants) (_._1.property("gid").orElse("")) (_._2.substring(5))
     val base = new VariantBuilder(List[String](), List[List[String]]())
     samples.foldLeft(base) { case (builder, (sample, genes)) =>
       builder.addSample(sample) (genes)
@@ -60,6 +63,7 @@ object Cohort {
 
   def cohortVariantsTSV(graph: GaeaGraph) (cohort: String): String = {
     val variants = cohortVariants(graph) (cohort)
-    Frame.renderTSV(variants)
+    val frame = Frame.renderTSV(variants)
+    biosamplePrefix.replaceAllIn(frame, "")
   }
 }
