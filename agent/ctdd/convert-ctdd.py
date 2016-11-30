@@ -14,7 +14,7 @@ The four files of interest (for this converter) are:
 4) v20.meta.per_experiment.txt
 '''
 
-import sample_pb2 as schema
+from bmeg import phenotype_pb2, sample_pb2, genome_pb2, variant_pb2
 from google.protobuf import json_format
 import json, sys, argparse, os
 import csv #for drug data
