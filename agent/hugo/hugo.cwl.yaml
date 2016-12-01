@@ -31,7 +31,7 @@ steps:
         class: CommandLineTool
         hints:
           DockerRequirement:
-            dockerPull: bmeg-python
+            dockerPull: bmeg/bmeg-python
         baseCommand: [python]
         inputs:
           script:

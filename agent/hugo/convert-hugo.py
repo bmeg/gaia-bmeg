@@ -57,8 +57,7 @@ from pprint import pprint
 import argparse
 from google.protobuf import json_format
 
-import convert.sample_pb2 as schema
-import convert.record as record
+from bmeg import sample_pb2, genome_pb2, nlp_pb2, record
 
 comma_match = r'\s*,\s*'
 
@@ -75,7 +74,7 @@ class GeneGenerator(record.RecordGenerator):
         self.pubmed_gid = pubmed_gid
 
     def schema(self):
-        return schema.Gene()
+        return genome_pb2.Gene()
 
     def gid(self, data):
         return 'gene:' + data['Approved Symbol']
@@ -103,7 +102,7 @@ class GeneSynonymGenerator(record.RecordGenerator):
         self.database_gid = database_gid
 
     def schema(self):
-        return schema.GeneSynonym()
+        return genome_pb2.GeneSynonym()
 
     def gid(self, data):
         return 'geneSynonym:' + data[self.key]
@@ -119,7 +118,7 @@ class GeneDatabaseGenerator(record.RecordGenerator):
         super(GeneDatabaseGenerator, self).__init__('GeneDatabase')
 
     def schema(self):
-        return schema.GeneDatabase()
+        return genome_pb2.GeneDatabase()
 
     def gid(self, data):
         return 'geneDatabase:' + data
@@ -133,7 +132,7 @@ class GeneFamilyGenerator(record.RecordGenerator):
         super(GeneFamilyGenerator, self).__init__('GeneFamily')
 
     def schema(self):
-        return schema.GeneFamily()
+        return genome_pb2.GeneFamily()
 
     def gid(self, data):
         return 'geneFamily:' + data[0]
@@ -148,7 +147,7 @@ class PubmedGenerator(record.RecordGenerator):
         super(PubmedGenerator, self).__init__('Pubmed')
         
     def schema(self):
-        return schema.Pubmed()
+        return nlp_pb2.Pubmed()
 
     def gid(self, data):
         return 'pubmed:' + data

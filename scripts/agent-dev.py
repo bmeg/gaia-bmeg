@@ -60,6 +60,7 @@ if __name__ == "__main__":
             out = tempfile.NamedTemporaryFile(dir=WORK_DIR, prefix="agent_workflow_", suffix=".json", delete=False)
             out_name = out.name
             out.write(json.dumps(workflow_inputs))
+            out.close()
             cmd = [which("cwltool"), workflow, out_name]
             print "Running %s" % (" ".join(cmd))
             proc = subprocess.Popen(cmd, cwd=WORK_DIR, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -67,5 +68,8 @@ if __name__ == "__main__":
             print "stdout:", stdout
             print "stderr:", stderr
             outputs = json.loads(stdout)
+            
+            for o in config['workflow']['outputs']:
+                print o, outputs[o]
             
     
