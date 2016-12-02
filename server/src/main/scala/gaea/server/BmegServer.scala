@@ -9,7 +9,7 @@ object BmegServer extends App {
   val graph = config.connectToGraph(config.graph)
 
   if (graph.isSuccess) {
-    GaeaServer.start(config.server) (graph.get) (List[GaeaFacet]())
+    GaeaServer.start(config.server) (graph.get) (BmegFacets.facets)
   } else {
     println("failed to connect to graph: " + config.graph.toString)
   }
