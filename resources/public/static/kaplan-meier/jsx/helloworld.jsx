@@ -181,4 +181,4 @@ var KaplanMeierPlot = React.createClass({
   }
 });
 
-ReactDOM.render(<KaplanMeierPlot cohortURL="/gaea/individual/tumor/" survivalURL="/gaea/individual/survival" />, document.getElementById('kaplan-meier'));
+ReactDOM.render(<KaplanMeierPlot cohortURL="/gaia/individual/tumor/" survivalURL="/gaia/individual/survival" />, document.getElementById('kaplan-meier'));

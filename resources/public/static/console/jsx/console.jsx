@@ -71,4 +71,4 @@ var GraphConsole = React.createClass({
   }
 });
 
-ReactDOM.render(<GraphConsole queryURL="/gaea/console" />, document.getElementById('graph-console'));
+ReactDOM.render(<GraphConsole queryURL="/gaia/console" />, document.getElementById('graph-console'));

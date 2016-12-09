@@ -1,6 +1,0 @@
-graph:
-  database: titan
-  host: localhost
-  keyspace: gaea
-server:
-  port: 11223

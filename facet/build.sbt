@@ -10,11 +10,11 @@ resolvers ++= Seq(
   "Sonatype Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
   "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases",
   "Twitter Maven Repo" at "https://maven.twttr.com",
-  "GAEA Depends Repo" at "https://github.com/bmeg/gaea-depends/raw/master/"
+  "GAEA Depends Repo" at "https://github.com/bmeg/gaia-depends/raw/master/"
 )
 
 libraryDependencies ++= Seq(
-  "io.bmeg" %% "gaea-server" % "0.0.3-SNAPSHOT"
+  "io.bmeg" %% "gaia-server" % "0.0.3-SNAPSHOT"
 )
 
 libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.6.4"

@@ -1,5 +1,5 @@
 graph:
-  database: tinkergraph
+  database: titan
   host: localhost
   keyspace: gaia
 server:
