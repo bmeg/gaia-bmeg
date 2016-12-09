@@ -196,7 +196,7 @@ def process_maf_line(state, source, line_raw):
     # Example tumor_sample_barcode: 'CCLE-CCK81_LARGE_INTESTINE' 
 
     # create nodes
-    tumor_sample = find_biosample(state, source, line[tumor_sample_barcode], 'tumor')
+    tumor_sample = find_biosample(state, source, line[tumor_sample_barcode], 'cellline')
 
     position = find_position(state, line[chromosome], line[start], line[end], line[strand])
 
@@ -282,7 +282,7 @@ def process_csv_line(state, source, lineAsList):
         drug = phenotype_pb2.Drug()
         drug.gid = drug_name
         drug.type = 'Drug'
-        drug.synonyms.append(drug_name)
+        #drug.synonyms.append(drug_name)
         state['Drug'][drug_name] = drug
     
     """
@@ -309,8 +309,8 @@ def process_csv_line(state, source, lineAsList):
     response = phenotype_pb2.ResponseCurve()
     response.gid = "responseCurve:" + tumor_sample.gid + drug.gid 
     response.responseType = phenotype_pb2.ResponseCurve.ACTIVITY
-    response.compoundEdges.append( drug.gid )
-    response.sampleEdges.append( tumor_sample.gid )
+    response.compound = drug.gid
+    response.sample = tumor_sample.gid
     for dose, activity in zip( lineAsList[Doses_uM].split(","), lineAsList[Activity_Data_median].split(",") ):
         dr = response.values.add()
         dr.dose = float(dose)
