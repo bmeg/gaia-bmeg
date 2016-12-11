@@ -16,9 +16,17 @@ CCLE Maf format contains some columns output by Oncotator: https://www.broadinst
 
 curl -o CCLE_NP24.2009_Drug_data_2015.02.24.csv "https://portals.broadinstitute.org/ccle/downloadFile/DefaultSystemRoot/exp_10/ds_27/CCLE_NP24.2009_Drug_data_2015.02.24.csv?downloadff=true&fileId=20777"
 curl -o CCLE_hybrid_capture1650_hg19_NoCommonSNPs_NoNeutralVariants_CDS_2012.05.07.maf.gz "https://portals.broadinstitute.org/ccle/downloadFile/DefaultSystemRoot/exp_10/ds_26/CCLE_hybrid_capture1650_hg19_NoCommonSNPs_NoNeutralVariants_CDS_2012.05.07.maf.gz?downloadff=true&fileId=6873"
+
+Clinical data download
+curl -o CCLE_sample_info_file_2012-10-18.txt "https://portals.broadinstitute.org/ccle/downloadFile/DefaultSystemRoot/exp_10/ds_22/CCLE_sample_info_file_2012-10-18.txt?downloadff=true&fileId=6801"
+
+Convert CCLE
+curl -o CCLE_Expression_2012-09-29.res "https://portals.broadinstitute.org/ccle/downloadFile/DefaultSystemRoot/exp_10/ds_21/CCLE_Expression_2012-09-29.res?downloadff=true&fileId=6760"
+
 '''
 
-from bmeg import phenotype_pb2, sample_pb2, genome_pb2, variant_pb2
+from ga4gh import bio_metadata_pb2, variants_pb2, allele_annotations_pb2
+from bmeg import phenotype_pb2, genome_pb2, matrix_pb2
 from google.protobuf import json_format
 import json, sys, argparse, os
 import csv #for drug data
@@ -27,73 +35,26 @@ import re
 
 ########################################
 
-def find_biosample(state, source, barcode, sample_type):
-    sample_name = 'biosample:' + source + '-' + barcode
-    biosample = state['Biosample'].get(sample_name)
-    if biosample is None:
-        biosample = sample_pb2.Biosample()
-        biosample.gid = sample_name
-        biosample.type = 'Biosample'
-        biosample.source = source
-        biosample.barcode = barcode
-        biosample.sampleType = sample_type
-        state['Biosample'][sample_name] = biosample
+def gid_biosample(name):
+    return 'biosample:' + "CCLE:" + name
 
-    return biosample
+def gid_variant_set(name):
+    return "variant_set:" + "CCLE:" + name
 
-def find_position(state, chromosome, start, end, strand):
-    position_name = 'position:' + chromosome + start + end + strand
-    position = state['Position'].get(position_name)
-    if position is None:
-        position = genome_pb2.Position()
-        position.gid = position_name
-        position.type = 'Position'
-        position.chromosome = chromosome
-        position.start = int(start)
-        position.end = int(end)
-        position.strand = strand
-        state['Position'][position_name] = position
+def gid_callset(name):
+    return "callset:" + "CCLE:" + name
 
-    return position
+def gid_variant(chromosome, start, end, strand, ref, alt):
+    return "variant:%s:%s:%s:%s:%s:%s" % ( chromosome, start, end, strand, ",".join(ref), ",".join(alt) )
 
-def find_gene(state, hugo_code, entrez_gene_id):
-    gene_name = "gene:" + hugo_code
-    gene = state['Gene'].get(gene_name)
-    if gene is None:
-        gene = schema.Gene()
-        gene.gid = gene_name
-        gene.type = 'Gene'
-        # gene.attributes['entrezGeneId'] = entrez_gene_id
-        state['Gene'][gene_name] = gene
+def gid_compound(name):
+    return "compound:" + name
 
-    return gene
+def gid_response_curve(cellline, compound):
+    return "responseCurve:%s:%s" % (cellline, compound)
 
-def find_variant_call(state, source, position_name, reference_allele, normal_allele1, normal_allele2, tumor_allele1, tumor_allele2, variant_type, ncbi_build, mutation_status, sequencing_phase, sequence_source, bam_file, sequencer, genome_change, tumor_sample_name):
-    variant_name = 'variantCall:' + source + tumor_sample_name + position_name + variant_type + mutation_status 
-    variant_call = state['VariantCall'].get(variant_name)
-    if variant_call is None:
-        variant_call = variant_pb2.VariantCall()
-        variant_call.gid = variant_name
-        variant_call.type = 'VariantCall'
-        variant_call.source = source
-        
-        variant_call.referenceAllele = reference_allele # Reference_Allele, e.g. 'T'
-        variant_call.normalAllele1 = normal_allele1
-        variant_call.normalAllele2 = normal_allele2
-        variant_call.tumorAllele1 = tumor_allele1
-        variant_call.tumorAllele2 = tumor_allele2
-        variant_call.variantType = variant_type # e.g. 'SNP'
-    
-        variant_call.infoProperties['ncbiBuild'] = ncbi_build # e.g. '37'
-        variant_call.infoProperties['mutationStatus'] = mutation_status # e.g. 'Somatic'
-        variant_call.infoProperties['sequencingPhase'] = sequencing_phase # e.g. 'Phase_IV'
-        variant_call.infoProperties['sequenceSource'] = sequence_source # e.g. 'Capture'
-        variant_call.infoProperties['bamFile'] = bam_file # e.g. 'dbGAP'
-        variant_call.infoProperties['sequencer'] = sequencer # e.g. 'dbGAP'
-        variant_call.infoProperties['genomeChange'] = genome_change # e.g. 'dbGAP'
-        state['VariantCall'][variant_name] = variant_call
-
-    return variant_call
+def gid_expression(name):
+    return "expression:%s" % (name)
 
 def find_variant_call_effect(state, source, effect_name, classification, line):
     dbsnp_rs = 13
@@ -153,13 +114,9 @@ def find_variant_call_effect(state, source, effect_name, classification, line):
 
     #note to self: at this point, both variant_call_effect and state['VariantCallEffect'][effect_name] are bound to the same object (a protobuf message). mutating either object-bound-name will affect the final result.
     return variant_call_effect
-    
-def append_unique(l, i):
-    if not i in l:
-        l.append(i)
 
-def process_maf_line(state, source, line_raw):
-    # Information indices for VariantCall, Position, and Biosample
+
+def convert_maf(emit, mafpath):
     center = 2
     ncbi_build = 3
     chromosome = 4
@@ -189,44 +146,62 @@ def process_maf_line(state, source, line_raw):
     hugo_symbol = 0
     entrez_gene_id = 1
     variant_classification = 8
-
-    # --------------------------------------------
-    line = line_raw.rstrip().split('\t')
-
-    # Example tumor_sample_barcode: 'CCLE-CCK81_LARGE_INTESTINE' 
-
-    # create nodes
-    tumor_sample = find_biosample(state, source, line[tumor_sample_barcode], 'cellline')
-
-    position = find_position(state, line[chromosome], line[start], line[end], line[strand])
-
-    gene_id = 'gene:' + line[hugo_symbol]
-    # gene = find_gene(state, line[hugo_symbol], line[entrez_gene_id])
-
-    variant_call = find_variant_call(state, source, position.gid, line[reference_allele], line[normal_allele1], line[normal_allele2], line[tumor_allele1], line[tumor_allele2], line[variant_type], line[ncbi_build], line[mutation_status], line[sequencing_phase], line[sequence_source], line[bam_file], line[sequencer], line[genome_change], tumor_sample.gid)
-
-    effect_name = "variantCallEffect:" + variant_call.gid #For now, each variant call has one variant call effect. In the future we might want to make the effect name more unique.
-    variant_call_effect = find_variant_call_effect(state, source, effect_name, line[variant_classification], line)
-
-    # make edges
-    append_unique(variant_call.atPositionEdges, position.gid)
-    append_unique(variant_call.tumorSampleEdges, tumor_sample.gid)
-
-    append_unique(variant_call_effect.inGeneEdges, gene_id)
-    append_unique(variant_call_effect.effectOfEdges, variant_call.gid)
-
-    return state
-
-def convert_maf(state, mafpath, source):
+    
     print('converting maf: ' + mafpath)
+    
+    samples = set()
+    variants = {}
 
     inhandle = open(mafpath)
-    for line in inhandle:
-        if not line.startswith('Hugo_Symbol') and not line.startswith('#'):
-            state = process_maf_line(state, source, line)
+    for line_raw in inhandle:
+        if not line_raw.startswith('Hugo_Symbol') and not line_raw.startswith('#'):
+            line = line_raw.rstrip().split('\t')
+            vid = gid_variant( line[chromosome], long(line[start]), long(line[end]), line[strand], 
+                line[reference_allele], set( [line[tumor_allele1], line[tumor_allele2] ] ) )
+            if vid not in variants:
+                variant = variants_pb2.Variant()
+                variant.start = long(line[start])
+                variant.end = long(line[end])
+                variant.reference_name = line[chromosome]
+                variant.reference_bases = line[reference_allele]
+                for a in set( [line[tumor_allele1], line[tumor_allele2] ] ):
+                    variant.alternate_bases.append(a)
+                proto_list_append(variant.info["hugo"], line[hugo_symbol])
+                proto_list_append(variant.info["center"], line[center])
+                proto_list_append(variant.info["variant_type"], line[variant_type])
+                
+                #variant.variant_set_id = gid_variant_set(line[tumor_sample_barcode])
+                variants[vid] = variant
+                
+            call = variants[vid].calls.add()
+            call.call_set_id = gid_callset(line[tumor_sample_barcode])                
+            samples.add(line[tumor_sample_barcode])
+
+    for variant in variants.values():
+        emit(variant)
+    
+    for i in samples:
+        callset = variants_pb2.CallSet()
+        callset.id = gid_callset(i)
+        callset.bio_sample_id = gid_biosample(i)
+        emit(callset)
+
+        """    
+
+        #position = find_position(state, line[chromosome], line[start], line[end], line[strand])
+
+        gene_id = 'gene:' + line[hugo_symbol]
+        # gene = find_gene(state, line[hugo_symbol], line[entrez_gene_id])
+
+        variant_call = find_variant_call(state, source, position.gid, line[reference_allele], line[normal_allele1], line[normal_allele2], line[tumor_allele1], line[tumor_allele2], line[variant_type], line[ncbi_build], line[mutation_status], line[sequencing_phase], line[sequence_source], line[bam_file], line[sequencer], line[genome_change], tumor_sample.gid)
+
+        effect_name = "variantCallEffect:" + variant_call.gid #For now, each variant call has one variant call effect. In the future we might want to make the effect name more unique.
+        variant_call_effect = find_variant_call_effect(state, source, effect_name, line[variant_classification], line)
+
+        """
+
     inhandle.close()
 
-    return state
 
 ########################################
 
@@ -275,16 +250,7 @@ def process_csv_line(state, source, lineAsList):
         state['Phenotype'][phenotype_name] = phenotype
     """
     
-    # Create Drug
-    drug_name = "drug:" + lineAsList[Compound]
-    drug = state['Drug'].get(drug_name)
-    if drug is None:
-        drug = phenotype_pb2.Drug()
-        drug.gid = drug_name
-        drug.type = 'Drug'
-        #drug.synonyms.append(drug_name)
-        state['Drug'][drug_name] = drug
-    
+
     """
     # Create PhenotypeAssociation (which contains Context) based on the Drug
     phenotype_association_name = "phenotypeAssociation:" + tumor_sample.gid + drug.gid + phenotype.gid
@@ -305,34 +271,114 @@ def process_csv_line(state, source, lineAsList):
         phenotype_association.infoProperties['ActArea'] = lineAsList[ActArea]
         state['PhenotypeAssociation'][phenotype_association_name] = phenotype_association
     """
-    
-    response = phenotype_pb2.ResponseCurve()
-    response.gid = "responseCurve:" + tumor_sample.gid + drug.gid 
-    response.responseType = phenotype_pb2.ResponseCurve.ACTIVITY
-    response.compound = drug.gid
-    response.sample = tumor_sample.gid
-    for dose, activity in zip( lineAsList[Doses_uM].split(","), lineAsList[Activity_Data_median].split(",") ):
-        dr = response.values.add()
-        dr.dose = float(dose)
-        dr.response = float(activity)
-    state['ResponseCurve'][response.gid] = response
-    # make edges
-    #append_unique(phenotype.isTypeEdges, ontology_term.gid)
-    #append_unique(phenotype_association.hasGenotypeEdges, tumor_sample.gid)
-    #append_unique(phenotype_association.hasPhenotypeEdges, phenotype.gid)
-    #append_unique(phenotype_association.hasContextEdges, drug.gid)
 
     return state
 
-def convert_ccle_pharma_profiles(state, csvpath, source):
+def convert_ccle_pharma_profiles(emit, csvpath):
     print('converting csv:' + csvpath)
     with open(csvpath) as pharma_file:
-        reader = csv.reader(pharma_file, quotechar='"', delimiter=',', quoting=csv.QUOTE_ALL, skipinitialspace=True)
+        
+        drugs = {}
+        
+        reader = csv.DictReader(pharma_file, quotechar='"', delimiter=',', quoting=csv.QUOTE_ALL, skipinitialspace=True)
         for row in reader:
-            if not row[0] == 'CCLE Cell Line Name':
-                state = process_csv_line(state, source, row)
+            drug_gid = gid_compound(row['Compound'])
+            if drug_gid not in drugs:
+                drug = phenotype_pb2.Compound()
+                drug.gid = drug_gid
+                drugs[drug_gid] = drug
+            
+            response = phenotype_pb2.ResponseCurve()
+            response.gid = gid_response_curve(row['CCLE Cell Line Name'], row['Compound'])
+            response.responseType = phenotype_pb2.ResponseCurve.ACTIVITY
+            response.compound = drug_gid
+            response.sample = gid_biosample(row['CCLE Cell Line Name'])
+            for dose, activity in zip( row["Doses (uM)"].split(","), row["Activity Data (median)"].split(",") ):
+                dr = response.values.add()
+                dr.dose = float(dose)
+                dr.response = float(activity)
+            try:
+                v = float(row["EC50 (uM)"])
+                s = response.summary.add()
+                s.type = phenotype_pb2.ResponseSummary.EC50
+                s.value = v
+                s.unit = "uM"
+            except ValueError:
+                pass
+            try:
+                v = float(row["IC50 (uM)"])
+                s = response.summary.add()
+                s.type = s.IC50
+                s.value = v
+                s.unit = "uM"
+            except ValueError:
+                pass
+            emit(response)
 
-    return state
+        for d in drugs.values():
+            emit(d)
+
+
+
+def convert_expression(emit, expressionpath):
+
+    with open(expressionpath) as handle:
+        reader = csv.reader(handle, delimiter="\t")
+        header = reader.next()
+        reader.next()
+        reader.next()
+        
+        values = {}
+        for i in header[2:]:
+            if len(header):
+                values[i] = []
+
+        gene_order = []
+        for line in reader:
+            if len(line[0]):
+                for a in zip(header, line)[2:]:
+                    if len(a[0]):
+                        values[a[0]].append(float(a[1]))
+                gene_order.append(line[0])
+
+        for k, v in values.items():
+            if len(k):
+                ge = matrix_pb2.GeneExpression()
+                ge.gid = gid_expression(k)
+                ge.bio_sample_id = gid_biosample(k)
+                vals = {}
+                counts = {}
+                for g, val in zip(gene_order, v):
+                    if g not in vals:
+                        vals[g] = []
+                        counts[g] = 0.0
+                    vals[g].append(val)
+                    counts[g] += 1.0
+                for g in vals:
+                    ge.expressions[g] = sum(vals[g]) / counts[g]
+                emit(ge)
+
+def proto_list_append(message, a):
+    v = message.values.add()
+    v.string_value = a
+    
+
+def convert_sample(emit, samplepath):
+    
+    with open(samplepath) as handle:
+        reader = csv.DictReader(handle, delimiter="\t")
+        for line in reader:
+            sample = bio_metadata_pb2.BioSample()
+            sample.id = gid_biosample(line["CCLE name"])
+            sample.dataset_id = "CCLE"
+            proto_list_append(sample.info['sampleType'], "cellline")
+            proto_list_append(sample.info['histology'], line["Histology"])
+            proto_list_append(sample.info['alias'], line["Cell line primary name"])
+            if len(line['Source']):
+                proto_list_append(sample.info['source'], line['Source'])
+            if len(line['Notes']):
+                proto_list_append(sample.info['notes'], line['Notes'])
+            emit(sample)
 
 ########################################
 
@@ -345,58 +391,27 @@ def splice_path(path, s):
     return '.'.join(path_parts) #string.join(path_parts, '.')
 
 def message_to_json(message):
-    json = json_format.MessageToJson(message)
-    return re.sub(r' +', ' ', json.replace('\n', ''))
+    msg = json.loads(json_format.MessageToJson(message))
+    msg['#label'] = message.DESCRIPTOR.name
+    return json.dumps(msg)
 
-def write_messages(state, outpath, format):
-    if format == 'json':
-        messages = []
-        for message in state:
-            messages += map(message_to_json, state[message].values())
-
-        if len(messages) > 0:
-            out = string.join(messages, '\n')
-            outhandle = open(outpath, 'w')
-            outhandle.write(out)
-            outhandle.close()
-
-        # for message in state:
-        #     outmessage = splice_path(outpath, message)
-        #     messages = list(map(message_to_json, state[message].values())) #[message_to_json(value) for value in state[message].values()]
-        #     if len(messages) > 0:
-        #         out = '\n'.join(messages) #string.join(messages, '\n')
-        #         outhandle = open(outmessage, 'w')
-        #         outhandle.write(out)
-        #         outhandle.close()
-    else:
-        for message in state:
-            outmessage = splice_path(outpath, message)
-            messages = list(map(lambda m: m.SerializeToString(), state[message].values())) #[value.SerializeToString() for value in state[message].values()]
-            if len(messages) > 0:
-                out = b'\n'.join(messages) #string.join(messages, '\n')
-                outhandle = open(outmessage, 'wb')
-                outhandle.write(out)
-                outhandle.close()
-
-def convert_maf_and_csv_to_profobuf(mafpath, csvpath, outpath, format):
-    state = {'Biosample': {},
-             'Position': {},
-             # 'Gene': {},
-             'VariantCall': {},
-             'ResponseCurve' : {},
-             'VariantCallEffect': {},
-             'Drug': {},
-             'OntologyTerm': {},
-             'Phenotype': {},
-             'PhenotypeAssociation': {}}
-    source = 'CCLE'
-
+def convert_to_profobuf(mafpath, drugpath, samplepath, expressionpath, outpath, format):
+    
+    handle = open(outpath, "w")
+    def emit(message):
+        handle.write(message_to_json(message))
+        handle.write("\n")
+         
     if mafpath:
-        convert_maf(state, mafpath, source)
-    if csvpath:
-        convert_ccle_pharma_profiles(state, csvpath, source)
+        convert_maf(emit, mafpath)
+    if drugpath:
+        convert_ccle_pharma_profiles(emit, drugpath)
+    if samplepath:
+        convert_sample(emit, samplepath)
+    if expressionpath:
+        convert_expression(emit, expressionpath)
 
-    write_messages(state, outpath, format)
+    handle.close()
 
 def parse_args(args):
     # We don't need the first argument, which is the program name
@@ -408,11 +423,13 @@ def parse_args(args):
 
     # Now add all the options to it
     parser.add_argument('--maf', type=str, help='Path to the maf you want to import')
-    parser.add_argument('--csv', type=str, help='Path to the csv (drug response data) you want to import')
+    parser.add_argument('--drug', type=str, help='Path to the csv (drug response data) you want to import')
+    parser.add_argument('--sample', type=str, help='Path to the csv CCLE sample data')
+    parser.add_argument('--expression', type=str, help='Path to the CCLE expression data')
     parser.add_argument('--out', type=str, help='Path to output file (.json or .pbf_ext)')
     parser.add_argument('--format', type=str, default='json', help='Format of output: json or pbf (binary)')
     return parser.parse_args(args)
 
 if __name__ == '__main__':
     options = parse_args(sys.argv)
-    convert_maf_and_csv_to_profobuf(options.maf, options.csv, options.out, options.format)
+    convert_to_profobuf(options.maf, options.drug, options.sample, options.expression, options.out, options.format)
