@@ -1,10 +1,11 @@
 package gaia.graph.migration
 
 import gaia.graph._
+import gaia.migration._
 import gremlin.scala._
 import java.lang.{Long => Llong}
 
-object GaiaBmegMigration {
+object GaiaBmegMigration extends GaiaMigration {
   val indexSpec = Map(
     "positionIndex" -> Map(
       "chromosome" -> classOf[String],
@@ -12,14 +13,15 @@ object GaiaBmegMigration {
       "start" -> classOf[Llong],
       "end" -> classOf[Llong]),
 
-    "idIndex" -> Map("id" -> classOf[String]),
-    "gidIndex" -> Map("gid" -> classOf[String]),
     "symbolIndex" -> Map("symbol" -> classOf[String]),
-    "typeIndex" -> Map("type" -> classOf[String]),
     "tumorIndex" -> Map("tumorSite" -> classOf[String])
   )
+
+  def signature: String = "gaia-bmeg-migration"
 
   def migrate(graph: GaiaGraph): Unit = {
     graph.makeIndexes(indexSpec)
   }
 }
+
+GaiaMigrations.registerMigrations(List(GaiaBmegMigration))
