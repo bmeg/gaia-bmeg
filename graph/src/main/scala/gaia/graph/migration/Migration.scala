@@ -1,7 +1,6 @@
 package gaia.graph.migration
 
 import gaia.graph._
-import gaia.migration._
 import gremlin.scala._
 import java.lang.{Long => Llong}
 
@@ -24,4 +23,4 @@ object GaiaBmegMigration extends GaiaMigration {
   }
 }
 
-GaiaMigrations.registerMigrations(List(GaiaBmegMigration))
+// GaiaMigrations.registerMigrations(List(GaiaBmegMigration))
