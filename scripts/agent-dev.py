@@ -17,7 +17,7 @@ def download_cache(url):
     u =  hashlib.md5(url).hexdigest()
     f = os.path.join(CACHE_DIR, u)
     if not os.path.exists(f):
-        urllib.urlretrieve (url, f)
+        urllib.urlretrieve(url, f)
     return f
 
 def which(file):

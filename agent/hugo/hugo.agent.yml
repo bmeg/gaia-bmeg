@@ -1,4 +1,3 @@
-
 class: Agent
 
 trigger: once
@@ -6,7 +5,13 @@ trigger: once
 inputs:
   hugo_file:
     type: Download
-    sourceUrl: ftp://ftp.ebi.ac.uk/pub/databases/genenames/hgnc_complete_set.txt.gz
+    # this file does not currently exist (as of 12-15-2016)
+    # may be a temporary error?
+    sourceUrl: ftp://ftp.ebi.ac.uk/pub/databases/genenames/new/tsv/hgnc_complete_set.txt
+
+    # found this one, but the columns have different key names and neither is a 
+    # subset of the other.
+    # sourceUrl: ftp://ftp.ebi.ac.uk/pub/databases/genenames/hgnc_complete_set.txt.gz
 
 workflow:
   run: hugo.cwl.yaml
