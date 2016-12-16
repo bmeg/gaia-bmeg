@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-
 import os
 import argparse
 from glob import glob
@@ -13,6 +12,7 @@ import json
 
 CACHE_DIR=os.path.join( os.path.dirname( os.path.abspath(__file__)), "..", "cache" )
 WORK_DIR=os.path.join( os.path.dirname( os.path.abspath(__file__)), "..", "work" )
+
 def download_cache(url):
     u =  hashlib.md5(url).hexdigest()
     f = os.path.join(CACHE_DIR, u)
@@ -25,7 +25,6 @@ def which(file):
         p = os.path.join(path, file)
         if os.path.exists(p):
             return p
-
 
 def prep_inputs(config):
     inputs = {}
@@ -61,8 +60,17 @@ if __name__ == "__main__":
             out_name = out.name
             out.write(json.dumps(workflow_inputs))
             out.close()
-            cmd = [which("cwltool"), workflow, out_name]
+
+            cmd = [
+                which("cwltool"),
+                "--tmp-outdir-prefix=" + WORK_DIR + "/tmp",
+                "--tmpdir-prefix=" + WORK_DIR + "/tmp",
+                workflow,
+                out_name
+            ]
+
             print "Running %s" % (" ".join(cmd))
+            print("workdir: " + WORK_DIR)
             proc = subprocess.Popen(cmd, cwd=WORK_DIR, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             stdout, stderr = proc.communicate()
             print "stdout:", stdout

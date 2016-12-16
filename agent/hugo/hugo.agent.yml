@@ -5,16 +5,10 @@ trigger: once
 inputs:
   hugo_file:
     type: Download
-    # this file does not currently exist (as of 12-15-2016)
-    # may be a temporary error?
-    sourceUrl: ftp://ftp.ebi.ac.uk/pub/databases/genenames/new/tsv/hgnc_complete_set.txt
-
-    # found this one, but the columns have different key names and neither is a 
-    # subset of the other.
-    # sourceUrl: ftp://ftp.ebi.ac.uk/pub/databases/genenames/hgnc_complete_set.txt.gz
+    sourceUrl: ftp://ftp.ebi.ac.uk/pub/databases/genenames/hgnc_complete_set.txt.gz
 
 workflow:
-  run: hugo.cwl.yaml
+  run: hugo-gz.cwl.yaml
   inputs: 
     hgnc_file: hugo_file
   outputs:

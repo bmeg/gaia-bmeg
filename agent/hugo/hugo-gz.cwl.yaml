@@ -10,6 +10,9 @@ steps:
     unzip:
       run:
         class: CommandLineTool
+        hints:
+          DockerRequirement:
+            dockerPull: bmeg/bmeg-python
         baseCommand: [gunzip, -c]
         inputs:
           gz:
