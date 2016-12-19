@@ -1,0 +1,9 @@
+
+- 
+  type: Variant
+  process: 
+    - name: info
+      action: RENDER_MAP_TO_PROPERTIES
+    - name: calls
+      action: CREATE_EDGE
+      
