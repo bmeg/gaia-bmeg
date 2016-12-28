@@ -7,6 +7,28 @@ inputs:
         #dirac:sourceUrl: ftp://ftp.ebi.ac.uk/pub/databases/genenames/hgnc_complete_set.txt.gz
 
 steps:
+    unzip:
+      run:
+        class: CommandLineTool
+        hints:
+          DockerRequirement:
+            dockerPull: bmeg/bmeg-python
+        baseCommand: [gunzip, -c]
+        inputs:
+          gz:
+            type: File
+            inputBinding:
+              position: 1
+        outputs:
+          out:
+              type: File
+              outputBinding:
+                glob: out.txt
+        stdout: out.txt
+      in:
+        gz: hgnc_file
+      out:
+        - out
     convert:
       run:
         class: CommandLineTool
@@ -39,7 +61,7 @@ steps:
             outputBinding:
               glob: out.json
       in:
-        hugoFile: hgnc_file
+        hugoFile: unzip/out
       out: 
         - proto
 
