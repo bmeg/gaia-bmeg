@@ -1,10 +1,10 @@
-package gaea.facet
+package gaia.facet
 
-import gaea.graph._
-import gaea.gene.Gene
-import gaea.signature.Signature
-import gaea.collection.Collection._
-import gaea.facet.event.Event
+import gaia.graph._
+import gaia.gene.Gene
+import gaia.signature.Signature
+import gaia.collection.Collection._
+import gaia.facet.event.Event
 
 import org.http4s._
 import org.http4s.server._
@@ -20,12 +20,12 @@ import org.http4s.argonaut._
 
 import scala.collection.JavaConversions._
 
-case class SignatureFacet(root: String) extends GaeaFacet with LazyLogging {
+case class SignatureFacet(root: String) extends GaiaFacet with LazyLogging {
   def takeHighest(n: Int) (signature: Vertex): List[String] = {
     Signature.dehydrateCoefficients(signature) ("coefficients").toList.sortWith(_._2 > _._2).take(n).map(_._1)
   }
 
-  def service(graph: GaeaGraph): HttpService = {
+  def service(graph: GaiaGraph): HttpService = {
     HttpService {
       case request @ POST -> Root / "gene" =>
         request.as[Json].flatMap { json =>

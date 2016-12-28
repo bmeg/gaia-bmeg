@@ -1,8 +1,8 @@
-package gaea.signature
+package gaia.signature
 
-import gaea.graph._
-import gaea.gene.Gene
-import gaea.collection.Collection._
+import gaia.graph._
+import gaia.gene.Gene
+import gaia.collection.Collection._
 
 import ladder.statistics.Statistics
 import org.apache.commons.math3.stat.inference._
@@ -32,7 +32,7 @@ object Signature {
 
   val ks = new KolmogorovSmirnovTest()
 
-  lazy val findBackground: GaeaGraph => Map[String, Seq[Double]] = memoize { graph =>
+  lazy val findBackground: GaiaGraph => Map[String, Seq[Double]] = memoize { graph =>
     signatureBackground(graph)
   }
 
@@ -41,12 +41,12 @@ object Signature {
     Parse.parseOption(raw).map(_.as[Map[String, Double]].getOr(emptyMap)).getOrElse(emptyMap)
   }
 
-  def findSignatures(graph: GaeaGraph): List[Tuple2[Vertex, Map[String, Double]]] = {
+  def findSignatures(graph: GaiaGraph): List[Tuple2[Vertex, Map[String, Double]]] = {
     val signatureVertexes = graph.typeVertexes("linearSignature")
     signatureVertexes.map((vertex) => (vertex, dehydrateCoefficients(vertex) ("coefficients")))
   }
 
-  def linkSignaturesToGenes(graph: GaeaGraph): List[Tuple2[Vertex, Map[String, Double]]] = {
+  def linkSignaturesToGenes(graph: GaiaGraph): List[Tuple2[Vertex, Map[String, Double]]] = {
     val signatures = findSignatures(graph)
     for ((signatureVertex, coefficients) <- signatures) {
       for ((gene, coefficient) <- coefficients) {
@@ -86,10 +86,10 @@ object Signature {
   }
 
   def applyExpressionToSignatures
-    (graph: GaeaGraph)
+    (graph: GaiaGraph)
     (expressionVertex: Vertex)
     (signatures: List[Tuple2[Vertex, Map[String, Double]]])
-      : GaeaGraph = {
+      : GaiaGraph = {
 
     val levels = dehydrateCoefficients(expressionVertex) ("expressions")
     val normalized = Statistics.exponentialNormalization(levels)
@@ -108,9 +108,9 @@ object Signature {
   }
 
   def applyExpressionsToSignatures
-    (graph: GaeaGraph)
+    (graph: GaiaGraph)
     (signatures: List[Tuple2[Vertex, Map[String, Double]]])
-      : GaeaGraph = {
+      : GaiaGraph = {
 
     val expressionVertexes = graph.typeVertexes("geneExpression")
 
@@ -121,7 +121,7 @@ object Signature {
     graph
   }
 
-  def signatureCorrelation(graph: GaeaGraph) (a: String) (b: String): Tuple3[Vertex, Vertex, Double] = {
+  def signatureCorrelation(graph: GaiaGraph) (a: String) (b: String): Tuple3[Vertex, Vertex, Double] = {
     val query = graph.V.has(Gid, within(List(a, b):_*)).as(signatureStep)
       .outE("appliesTo").as(levelStep)
       .inV.as(expressionStep)
@@ -148,14 +148,14 @@ object Signature {
     (levels(a).head._2, levels(b).head._2, score)
   }
 
-  def applySignatureCorrelation(graph: GaeaGraph) (a: String) (b:String): Double = {
+  def applySignatureCorrelation(graph: GaiaGraph) (a: String) (b:String): Double = {
     val (vertexA, vertexB, score) = signatureCorrelation(graph) (a) (b)
     vertexA <-- ("correlatesTo") --> vertexB
     graph.commit()
     score
   }
 
-  def correlateAllSignatures(graph: GaeaGraph): GaeaGraph = {
+  def correlateAllSignatures(graph: GaiaGraph): GaiaGraph = {
     val signatureNames = graph.V.hasLabel("type")
       .has(Gid, "type:linearSignature")
       .out("hasInstance")
@@ -176,7 +176,7 @@ object Signature {
     }.toMap
   }
 
-  def signatureBackground(graph: GaeaGraph): Map[String, Seq[Double]] = {
+  def signatureBackground(graph: GaiaGraph): Map[String, Seq[Double]] = {
     val levelPairs = graph.typeQuery("geneExpression")
       .inE("appliesTo").as(levelStep)
       .outV.as(signatureStep)
@@ -188,7 +188,7 @@ object Signature {
 
   // Eventually filter out these variantClassification values: List("5'Flank", "IGR", "Silent", "Intron")`
 
-  def variantLevels(graph: GaeaGraph) (genes: Seq[String]): Map[String, Seq[Double]] = {
+  def variantLevels(graph: GaiaGraph) (genes: Seq[String]): Map[String, Seq[Double]] = {
     val levelPairs = Gene.synonymsQuery(graph) (genes)
       .in("inGene")
       .out("effectOf")
@@ -202,7 +202,7 @@ object Signature {
     extractLevels(levelPairs)
   }
 
-  def variantSignificance(graph: GaeaGraph) (genes: Seq[String]): Map[String, Double] = {
+  def variantSignificance(graph: GaiaGraph) (genes: Seq[String]): Map[String, Double] = {
     val variants = variantLevels(graph) (genes)
     variants.map { variant =>
       val geneLevels = variant._2
@@ -218,7 +218,7 @@ object Signature {
   }
 
   def highestScoringSamples
-    (graph: GaeaGraph)
+    (graph: GaiaGraph)
     (signatures: Seq[String])
     (limit: Long)
     (order: Order)
@@ -235,7 +235,7 @@ object Signature {
   }
 
   def individualScores
-    (graph: GaeaGraph)
+    (graph: GaiaGraph)
     (individuals: Seq[String])
     (signatures: Seq[String])
       : Set[Tuple3[Vertex, Vertex, Edge]] = {
@@ -251,10 +251,10 @@ object Signature {
 
   // DEPRECATED as inefficient way to do things -----------------------------------------
   def applySignatureToExpressions
-    (graph: GaeaGraph)
+    (graph: GaiaGraph)
     (signature: Tuple2[Vertex, Map[String, Double]])
     (expressions: List[Tuple2[Vertex, Map[String, Double]]])
-      : GaeaGraph = {
+      : GaiaGraph = {
 
     val (signatureVertex, coefficients) = signature
     val (genes, values) = splitMap[String, Double](coefficients)
@@ -272,9 +272,9 @@ object Signature {
   }
 
   def applySignaturesToExpressions
-    (graph: GaeaGraph)
+    (graph: GaiaGraph)
     (signatures: List[Tuple2[Vertex, Map[String, Double]]])
-      : GaeaGraph = {
+      : GaiaGraph = {
 
     val expressionVertexes = graph.typeVertexes("geneExpression")
     val expressions = expressionVertexes.map((vertex) => (vertex, dehydrateCoefficients(vertex) ("expressions")))

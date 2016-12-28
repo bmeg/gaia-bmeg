@@ -3,7 +3,7 @@ var snipPrefix = function(s) {
 }
 
 var exploreVertex = function(page, gid) {
-  var url = "/gaea/vertex/find/" + gid;
+  var url = "/gaia/vertex/find/" + gid;
   window.location.hash = gid
 
   $.ajax({

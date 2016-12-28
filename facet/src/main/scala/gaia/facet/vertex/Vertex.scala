@@ -1,9 +1,9 @@
-package gaea.facet
+package gaia.facet
 
-// import gaea.graph._
-// import gaea.ingest.Ingest
-// import gaea.collection.Collection._
-// import gaea.html.VertexHtml
+// import gaia.graph._
+// import gaia.ingest.Ingest
+// import gaia.collection.Collection._
+// import gaia.html.VertexHtml
 
 // import org.http4s._
 // import org.http4s.server._
@@ -21,14 +21,14 @@ package gaea.facet
 
 // import scala.collection.JavaConversions._
 
-// case class VertexFacet(root: String) extends GaeaFacet with LazyLogging {
+// case class VertexFacet(root: String) extends GaiaFacet with LazyLogging {
 //   def mapToJson(properties: Map[String, Any]) : Json = {
 //     properties.map( x => {
 //       ((x._1), (x._2.toString))
 //     } ).asJson
 //   }
 
-//   def countVertexes(graph: GaeaGraph): Map[String, Long] = {
+//   def countVertexes(graph: GaiaGraph): Map[String, Long] = {
 //     val counts = graph.V.traversal.label.groupCount.toList.get(0)
 //     val labels = counts.keySet.toList.asInstanceOf[List[String]]
 //     labels.foldLeft(Map[String, Long]()) { (countMap, label) =>
@@ -36,7 +36,7 @@ package gaea.facet
 //     }
 //   }
 
-//   lazy val cacheVertexes: GaeaGraph => Map[String, Long] = memoize { graph => 
+//   lazy val cacheVertexes: GaiaGraph => Map[String, Long] = memoize { graph => 
 //     countVertexes(graph)
 //   }
 
@@ -53,7 +53,7 @@ package gaea.facet
 //  {"as": "signatureStep"},
 //  {"select": ["signatureStep", "levelStep", "expressionStep"]}]"""
 
-//   def service(graph: GaeaGraph): HttpService = {
+//   def service(graph: GaiaGraph): HttpService = {
 //     HttpService {
 //       case GET -> Root / "counts" =>
 //         Ok(cacheVertexes(graph).asJson)

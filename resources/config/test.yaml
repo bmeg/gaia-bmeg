@@ -1,6 +1,6 @@
 graph:
   database: tinkergraph
   host: localhost
-  keyspace: gaea
+  keyspace: gaia
 server:
   port: 11223

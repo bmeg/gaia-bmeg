@@ -1,8 +1,8 @@
-package gaea.facet
+package gaia.facet
 
-import gaea.graph._
-import gaea.gene.Gene
-import gaea.collection.Collection._
+import gaia.graph._
+import gaia.gene.Gene
+import gaia.collection.Collection._
 
 import org.http4s._
 import org.http4s.server._
@@ -18,8 +18,8 @@ import org.http4s.argonaut._
 
 import scala.collection.JavaConversions._
 
-case class GeneFacet(root: String) extends GaeaFacet with LazyLogging {
-  def service(graph: GaeaGraph): HttpService = {
+case class GeneFacet(root: String) extends GaiaFacet with LazyLogging {
+  def service(graph: GaiaGraph): HttpService = {
     HttpService {
       case GET -> Root / "hello" / name =>
         Ok(jSingleObject("message", jString(s"Hello, ${name}")))

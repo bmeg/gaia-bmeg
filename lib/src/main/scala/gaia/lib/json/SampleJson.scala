@@ -1,4 +1,4 @@
-package gaea.lib.json
+package gaia.lib.json
 
 import scalaz._, Scalaz._
 import argonaut._, Argonaut._

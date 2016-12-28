@@ -76,7 +76,7 @@ var GeneInput = React.createClass({
     var gene = event.target.value
     this.setState({input: gene})
 
-    var url = "/gaea/gene/" + gene + "/tumor/counts";
+    var url = "/gaia/gene/" + gene + "/tumor/counts";
 
     $.ajax({
       url: url,

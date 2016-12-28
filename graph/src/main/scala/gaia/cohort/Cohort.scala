@@ -1,9 +1,9 @@
-package gaea.cohort
+package gaia.cohort
 
-import gaea.graph._
+import gaia.graph._
 import gremlin.scala._
-import gaea.frame.Frame
-import gaea.collection.Collection._
+import gaia.frame.Frame
+import gaia.collection.Collection._
 import org.apache.tinkerpop.gremlin.process.traversal.P._
 
 object Cohort {
@@ -41,7 +41,7 @@ object Cohort {
     }
   }
 
-  def cohortVariants(graph: GaeaGraph) (cohort: String): Seq[Seq[String]] = {
+  def cohortVariants(graph: GaiaGraph) (cohort: String): Seq[Seq[String]] = {
     val variants = graph.V
       .hasLabel("cohort")
       .has(Gid, "cohort:" + cohort)
@@ -61,7 +61,7 @@ object Cohort {
     }.finish()
   }
 
-  def cohortVariantsTSV(graph: GaeaGraph) (cohort: String): String = {
+  def cohortVariantsTSV(graph: GaiaGraph) (cohort: String): String = {
     val variants = cohortVariants(graph) (cohort)
     val frame = Frame.renderTSV(variants)
     biosamplePrefix.replaceAllIn(frame, "")

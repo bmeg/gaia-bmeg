@@ -1,9 +1,9 @@
-package gaea.facet
+package gaia.facet
 
-import gaea.graph._
-import gaea.gene.Gene
-import gaea.signature.Signature
-import gaea.collection.Collection._
+import gaia.graph._
+import gaia.gene.Gene
+import gaia.signature.Signature
+import gaia.collection.Collection._
 
 import org.http4s._
 import org.http4s.server._
@@ -19,10 +19,10 @@ import org.http4s.argonaut._
 
 import scala.collection.JavaConversions._
 
-case class SampleFacet(root: String) extends GaeaFacet with LazyLogging {
+case class SampleFacet(root: String) extends GaiaFacet with LazyLogging {
   val ignoreMutations = List[String]("5'Flank", "IGR", "Silent", "Intron")
 
-  def service(graph: GaeaGraph) = HttpService {
+  def service(graph: GaiaGraph) = HttpService {
     case request @ POST -> Root / "variant" / gene =>
       request.as[Json].flatMap { json =>
         Ok("yellow".asJson)

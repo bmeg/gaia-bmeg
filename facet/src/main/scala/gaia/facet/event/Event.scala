@@ -1,8 +1,8 @@
-package gaea.facet.event
+package gaia.facet.event
 
-import gaea.graph._
-import gaea.signature.Signature
-import gaea.collection.Collection._
+import gaia.graph._
+import gaia.signature.Signature
+import gaia.collection.Collection._
 
 import _root_.argonaut._, Argonaut._
 import org.http4s.argonaut._

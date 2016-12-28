@@ -1,8 +1,8 @@
-package gaea.facet
+package gaia.facet
 
-import gaea.graph._
-import gaea.collection.Collection._
-import gaea.facet.event.Event
+import gaia.graph._
+import gaia.collection.Collection._
+import gaia.facet.event.Event
 
 import org.http4s._
 import org.http4s.server._
@@ -17,14 +17,14 @@ import _root_.argonaut._, Argonaut._
 import org.http4s.argonaut._
 import scala.collection.JavaConversions._
 
-case class IndividualFacet(root: String) extends GaeaFacet with LazyLogging {
+case class IndividualFacet(root: String) extends GaiaFacet with LazyLogging {
   val TumorSite = Key[String]("submittedTumorSite")
 
-  def findIndividualAttributes(graph: GaeaGraph): Set[String] = {
+  def findIndividualAttributes(graph: GaiaGraph): Set[String] = {
     graph.typeQuery("individual").toList.flatMap(_.valueMap.keys).toSet
   }
 
-  lazy val cacheIndividualAttributes: GaeaGraph => Set[String] = memoize { graph =>
+  lazy val cacheIndividualAttributes: GaiaGraph => Set[String] = memoize { graph =>
     findIndividualAttributes(graph)
   }
 
@@ -42,7 +42,7 @@ case class IndividualFacet(root: String) extends GaeaFacet with LazyLogging {
     }
   }
 
-  def service(graph: GaeaGraph): HttpService = {
+  def service(graph: GaiaGraph): HttpService = {
     HttpService {
       case GET -> Root / "tumor" / tumorType =>
         Ok(graph.V.has(Gid, "type:individual").out("hasInstance").has(TumorSite, tumorType).value(Gid).toList.asJson)
