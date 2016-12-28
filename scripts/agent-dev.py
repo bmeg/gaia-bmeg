@@ -25,7 +25,8 @@ def which(file):
         p = os.path.join(path, file)
         if os.path.exists(p):
             return p
-
+    if os.path.exists(file):
+        return os.path.abspath(file)
 
 def prep_inputs(config):
     inputs = {}
@@ -40,13 +41,16 @@ def prep_inputs(config):
     return inputs
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()    
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--engine", default="cwltool")
+    
     parser.add_argument("dir")
     
     args = parser.parse_args()
     
-    for agent in glob(os.path.join(args.dir, "*", "*.agent.yml")):
+    for agent in glob(os.path.join(args.dir, "*.agent.yml")) + glob(os.path.join(args.dir, "*", "*.agent.yml")):
         with open(agent) as handle:
+            print "Scanning", agent
             config = yaml.load(handle)
             print config
             inputs = prep_inputs(config)
@@ -61,7 +65,7 @@ if __name__ == "__main__":
             out_name = out.name
             out.write(json.dumps(workflow_inputs))
             out.close()
-            cmd = [which("cwltool"), workflow, out_name]
+            cmd = [which(args.engine), workflow, out_name]
             print "Running %s" % (" ".join(cmd))
             proc = subprocess.Popen(cmd, cwd=WORK_DIR, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             stdout, stderr = proc.communicate()
