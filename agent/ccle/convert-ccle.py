@@ -56,152 +56,6 @@ def gid_response_curve(cellline, compound):
 def gid_expression(name):
     return "expression:%s" % (name)
 
-def find_variant_call_effect(state, source, effect_name, classification, line):
-    dbsnp_rs = 13
-    dbsnp_val_status = 14
-    annotation_transcript = 33
-    transcript_strand = 34
-    cdna_change = 35 #not sure where this should belong
-    codon_change = 36
-    protein_change = 37
-    other_transcripts = 38
-    refseq_mrna_id = 39
-    refseq_prot_id = 40
-    swissprot_acc_id = 41
-    swissprot_entry_id = 42
-    description = 43
-    uniprot_aapos = 44
-    uniprot_region = 45
-    uniprot_site = 46
-    alternative_allele_reads_count = 47
-    reference_allele_reads_count = 48
-    x46vertebrates_aa_alignment_column = 49
-    method = 50
- 
-    variant_call_effect = state['VariantCallEffect'].get(effect_name)
-    if variant_call_effect is None:
-        variant_call_effect = variant_pb2.VariantCallEffect()
-        variant_call_effect.gid = effect_name
-        variant_call_effect.type = 'VariantCallEffect'
-        variant_call_effect.source = source
-        variant_call_effect.variantClassification = classification # e.g. 'Missense_Mutation'
-        try:
-            variant_call_effect.infoProperties['dbsnp_rs'] = line[dbsnp_rs]
-            variant_call_effect.infoProperties['dbsnp_val_status'] = line[dbsnp_val_status]
-            variant_call_effect.infoProperties['annotation_transcript'] = line[annotation_transcript]
-            variant_call_effect.infoProperties['transcript_strand'] = line[transcript_strand]
-            variant_call_effect.infoProperties['cdna_change'] = line[cdna_change]
-            variant_call_effect.infoProperties['codon_change'] = line[codon_change]
-            variant_call_effect.infoProperties['protein_change'] = line[protein_change]
-            variant_call_effect.infoProperties['other_transcripts'] = line[other_transcripts]
-            variant_call_effect.infoProperties['refseq_mrna_id'] = line[refseq_mrna_id]
-            variant_call_effect.infoProperties['refseq_prot_id'] = line[refseq_prot_id]
-            variant_call_effect.infoProperties['swissprot_acc_id'] = line[swissprot_acc_id]
-            variant_call_effect.infoProperties['swissprot_entry_id'] = line[swissprot_entry_id]
-            variant_call_effect.infoProperties['description'] = line[description]
-            variant_call_effect.infoProperties['uniprot_aapos'] = line[uniprot_aapos]
-            variant_call_effect.infoProperties['uniprot_region'] = line[uniprot_region]
-            variant_call_effect.infoProperties['uniprot_site'] = line[uniprot_site]
-            variant_call_effect.infoProperties['alternative_allele_reads_count'] = line[alternative_allele_reads_count]
-            variant_call_effect.infoProperties['reference_allele_reads_count'] = line[reference_allele_reads_count]
-            variant_call_effect.infoProperties['x46vertebrates_aa_alignment_column'] = line[x46vertebrates_aa_alignment_column]
-            variant_call_effect.infoProperties['method'] = line[method]
-        except Exception as ex:
-            None
-
-        state['VariantCallEffect'][effect_name] = variant_call_effect
-
-
-    #note to self: at this point, both variant_call_effect and state['VariantCallEffect'][effect_name] are bound to the same object (a protobuf message). mutating either object-bound-name will affect the final result.
-    return variant_call_effect
-
-
-def convert_maf(emit, mafpath):
-    center = 2
-    ncbi_build = 3
-    chromosome = 4
-    start = 5
-    end = 6
-    strand = 7
-    variant_type = 9
-    reference_allele = 10
-    tumor_allele1 = 11
-    tumor_allele2 = 12
-    tumor_sample_barcode = 15
-
-    normal_sample_barcode = 16 #null for CCLE
-    normal_allele1 = 17 #null for CCLE
-    normal_allele2 = 18 #null for CCLE
-    verification_status = 23 #null for CCLE
-    validation_status = 24 #null for CCLE
-    mutation_status = 25 #null for CCLE
-    sequencing_phase = 26 #All Phase_I for CCLE
-    sequence_source = 27 #Unspecified for CCLE
-    bam_file = 30 #null for CCLE
-
-    sequencer = 31
-    genome_change = 32 #for varcal
-
-    # Information indices for VariantCallEffect and Gene
-    hugo_symbol = 0
-    entrez_gene_id = 1
-    variant_classification = 8
-    
-    print('converting maf: ' + mafpath)
-    
-    samples = set()
-    variants = {}
-
-    inhandle = open(mafpath)
-    for line_raw in inhandle:
-        if not line_raw.startswith('Hugo_Symbol') and not line_raw.startswith('#'):
-            line = line_raw.rstrip().split('\t')
-            vid = gid_variant( line[chromosome], long(line[start]), long(line[end]), line[strand], 
-                line[reference_allele], set( [line[tumor_allele1], line[tumor_allele2] ] ) )
-            if vid not in variants:
-                variant = variants_pb2.Variant()
-                variant.start = long(line[start])
-                variant.end = long(line[end])
-                variant.reference_name = line[chromosome]
-                variant.reference_bases = line[reference_allele]
-                for a in set( [line[tumor_allele1], line[tumor_allele2] ] ):
-                    variant.alternate_bases.append(a)
-                proto_list_append(variant.info["hugo"], line[hugo_symbol])
-                proto_list_append(variant.info["center"], line[center])
-                proto_list_append(variant.info["variant_type"], line[variant_type])
-                
-                #variant.variant_set_id = gid_variant_set(line[tumor_sample_barcode])
-                variants[vid] = variant
-                
-            call = variants[vid].calls.add()
-            call.call_set_id = gid_callset(line[tumor_sample_barcode])                
-            samples.add(line[tumor_sample_barcode])
-
-    for variant in variants.values():
-        emit(variant)
-    
-    for i in samples:
-        callset = variants_pb2.CallSet()
-        callset.id = gid_callset(i)
-        callset.bio_sample_id = gid_biosample(i)
-        emit(callset)
-
-        """    
-
-        #position = find_position(state, line[chromosome], line[start], line[end], line[strand])
-
-        gene_id = 'gene:' + line[hugo_symbol]
-        # gene = find_gene(state, line[hugo_symbol], line[entrez_gene_id])
-
-        variant_call = find_variant_call(state, source, position.gid, line[reference_allele], line[normal_allele1], line[normal_allele2], line[tumor_allele1], line[tumor_allele2], line[variant_type], line[ncbi_build], line[mutation_status], line[sequencing_phase], line[sequence_source], line[bam_file], line[sequencer], line[genome_change], tumor_sample.gid)
-
-        effect_name = "variantCallEffect:" + variant_call.gid #For now, each variant call has one variant call effect. In the future we might want to make the effect name more unique.
-        variant_call_effect = find_variant_call_effect(state, source, effect_name, line[variant_classification], line)
-
-        """
-
-    inhandle.close()
-
 
 ########################################
 
@@ -395,15 +249,27 @@ def message_to_json(message):
     msg['#label'] = message.DESCRIPTOR.name
     return json.dumps(msg)
 
-def convert_to_profobuf(mafpath, drugpath, samplepath, expressionpath, outpath, format):
+def convert_to_profobuf(drugpath, samplepath, expressionpath, out, multi, format):
     
-    handle = open(outpath, "w")
-    def emit(message):
-        handle.write(message_to_json(message))
-        handle.write("\n")
+    out_handles = {}
+    def emit_json_single(message):
+        if 'main' not in out_handles:
+            out_handles['main'] = open(out, "w")
+        msg = json.loads(json_format.MessageToJson(message))
+        msg["#label"] = message.DESCRIPTOR.full_name
+        out_handles['main'].write(json.dumps(msg))
+        out_handles['main'].write("\n")
+    def emit_json_multi(message):
+        if message.DESCRIPTOR.full_name not in out_handles:
+            out_handles[message.DESCRIPTOR.full_name] = open(multi + "." + message.DESCRIPTOR.full_name + ".json", "w")
+        msg = json.loads(json_format.MessageToJson(message))
+        out_handles[message.DESCRIPTOR.full_name].write(json.dumps(msg))
+        out_handles[message.DESCRIPTOR.full_name].write("\n")
+    if out is not None:
+        emit = emit_json_single
+    if multi is not None:
+        emit = emit_json_multi
          
-    if mafpath:
-        convert_maf(emit, mafpath)
     if drugpath:
         convert_ccle_pharma_profiles(emit, drugpath)
     if samplepath:
@@ -411,7 +277,8 @@ def convert_to_profobuf(mafpath, drugpath, samplepath, expressionpath, outpath, 
     if expressionpath:
         convert_expression(emit, expressionpath)
 
-    handle.close()
+    for handle in out_handles.values():
+        handle.close()
 
 def parse_args(args):
     # We don't need the first argument, which is the program name
@@ -422,14 +289,14 @@ def parse_args(args):
         formatter_class=argparse.RawDescriptionHelpFormatter)
 
     # Now add all the options to it
-    parser.add_argument('--maf', type=str, help='Path to the maf you want to import')
     parser.add_argument('--drug', type=str, help='Path to the csv (drug response data) you want to import')
     parser.add_argument('--sample', type=str, help='Path to the csv CCLE sample data')
     parser.add_argument('--expression', type=str, help='Path to the CCLE expression data')
     parser.add_argument('--out', type=str, help='Path to output file (.json or .pbf_ext)')
+    parser.add_argument('--multi', type=str, help='Path to output file (.json or .pbf_ext)')
     parser.add_argument('--format', type=str, default='json', help='Format of output: json or pbf (binary)')
     return parser.parse_args(args)
 
 if __name__ == '__main__':
     options = parse_args(sys.argv)
-    convert_to_profobuf(options.maf, options.drug, options.sample, options.expression, options.out, options.format)
+    convert_to_profobuf(options.drug, options.sample, options.expression, options.out, options.multi, options.format)
