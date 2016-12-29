@@ -58,7 +58,7 @@ from pprint import pprint
 import argparse
 from google.protobuf import json_format
 
-from bmeg import sample_pb2, genome_pb2, nlp_pb2, record
+from bmeg import genome_pb2, nlp_pb2, record
 
 comma_match = r'\s*,\s*'
 
