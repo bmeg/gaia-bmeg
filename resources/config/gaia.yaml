@@ -4,3 +4,7 @@ graph:
   keyspace: gaia
 server:
   port: 11223
+  facets:
+    IndividualFacet: individual
+    GeneFacet: gene
+    SignatureFacet: signature
