@@ -59,74 +59,6 @@ def gid_expression(name):
 
 ########################################
 
-def process_csv_line(state, source, lineAsList):
-    # Fill out a PhenotypeAssociation connecting Biosample to a Drug response
-
-    # Information indices
-    CCLE_Cell_Line_Name = 0 #same as tumor_sample_barcode in process_maf_line()  #For Biosample
-    Primary_Cell_Line_Name = 1
-    Compound = 2 #for Drug
-    # The rest of these fields go into the info field of the Context for this PhenotypeAssociation
-    Target = 3
-    Doses_uM = 4
-    Activity_Data_median = 5
-    Activity_SD = 6
-    Num_Data = 7
-    FitType = 8
-    EC50_uM = 9
-    IC50_uM = 10
-    Amax = 11
-    ActArea = 12
-
-    # First create all the data structures to be referenced by the PhenotypeAssociation
-
-    # Create Biosample
-    tumor_sample = find_biosample(state, source, lineAsList[CCLE_Cell_Line_Name], 'cellline')
-
-    # Create OntologyTerm
-    """
-    ontology_term_name = "ontologyTerm:" + "http://amigo.geneontology.org/amigo/term/GO:0042493"
-    ontology_term = state['OntologyTerm'].get(ontology_term_name)
-    if ontology_term is None:
-        ontology_term = phenotype_pb2.OntologyTerm()
-        ontology_term.gid = ontology_term_name
-        ontology_term.type = 'OntologyTerm'
-        ontology_term.term = "response to drug"
-        state['OntologyTerm'][ontology_term_name] = ontology_term
-
-    # Create Phenotype based on the OntologyTerm
-    phenotype_name = "phenotype:" + ontology_term.gid #may want to refine this later
-    phenotype = state['Phenotype'].get(phenotype_name)
-    if phenotype is None:
-        phenotype = phenotype_pb2.Phenotype()
-        phenotype.gid = phenotype_name
-        phenotype.type = 'Phenotype'
-        state['Phenotype'][phenotype_name] = phenotype
-    """
-    
-
-    """
-    # Create PhenotypeAssociation (which contains Context) based on the Drug
-    phenotype_association_name = "phenotypeAssociation:" + tumor_sample.gid + drug.gid + phenotype.gid
-    phenotype_association = state['PhenotypeAssociation'].get(phenotype_association_name)
-    if phenotype_association is None:
-        phenotype_association = phenotype_pb2.PhenotypeAssociation()
-        phenotype_association.gid = phenotype_association_name
-        phenotype_association.type = 'PhenotypeAssociation'
-        phenotype_association.infoProperties['Target'] = lineAsList[Target]
-        phenotype_association.infoProperties['Doses_uM'] = lineAsList[Doses_uM]
-        phenotype_association.infoProperties['Activity_Data_median'] = lineAsList[Activity_Data_median]
-        phenotype_association.infoProperties['Activity_SD'] = lineAsList[Activity_SD]
-        phenotype_association.infoProperties['Num_Data'] = lineAsList[Num_Data]
-        phenotype_association.infoProperties['FitType'] = lineAsList[FitType]
-        phenotype_association.infoProperties['EC50_uM'] = lineAsList[EC50_uM]
-        phenotype_association.infoProperties['IC50_uM'] = lineAsList[IC50_uM]
-        phenotype_association.infoProperties['Amax'] = lineAsList[Amax]
-        phenotype_association.infoProperties['ActArea'] = lineAsList[ActArea]
-        state['PhenotypeAssociation'][phenotype_association_name] = phenotype_association
-    """
-
-    return state
 
 def convert_ccle_pharma_profiles(emit, csvpath):
     print('converting csv:' + csvpath)
@@ -167,6 +99,16 @@ def convert_ccle_pharma_profiles(emit, csvpath):
                 s.unit = "uM"
             except ValueError:
                 pass
+            v = float(row["Amax"])
+            s = response.summary.add()
+            s.type = s.AMAX
+            s.value = v
+            
+            v = float(row["ActArea"])
+            s = response.summary.add()
+            s.type = s.ACTIVITY_AREA
+            s.value = v
+
             emit(response)
 
         for d in drugs.values():
