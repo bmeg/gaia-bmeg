@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+export JAVA_OPTS="-Xms256m -Xmx4g"
+
+NAME=`cat server/build.sbt | grep "name :=" | cut -d'"' -f 2`
+VERSION=`cat server/build.sbt | grep "version :=" | cut -d'"' -f 2`
+JAR="$NAME-assembly-$VERSION.jar"
+JAR_PATH="server/target/scala-2.11"
+
+if [ -f $JAR_PATH/$JAR ]; then
+    GAIA_JAR=$JAR_PATH/$JAR
+elif [ ! -f $JAR ]; then
+    echo "failed to find assembly jar for $JAR, compiling now"
+    sbt server/assembly
+    GAIA_JAR=$JAR_PATH/$JAR
+else
+    GAIA_JAR=$JAR
+fi
+
+COMMAND=$1
+MEMORY="-Xmx4g"
+GAIA_COMMAND="java $MEMORY -cp $GAIA_JAR gaia.command.GaiaCommand"
+
+echo $GAIA_COMMAND $COMMAND
+
+case $COMMAND in
+    init)
+        $GAIA_COMMAND $COMMAND
+    ;;
+    ingest)
+        $GAIA_COMMAND $COMMAND
+    ;;
+    start)
+        $GAIA_COMMAND $COMMAND
+    ;;
+esac
