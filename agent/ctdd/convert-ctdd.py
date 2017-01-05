@@ -14,13 +14,13 @@ The four files of interest (for this converter) are:
 4) v20.meta.per_experiment.txt
 '''
 
-from bmeg import phenotype_pb2, sample_pb2, genome_pb2, variant_pb2
+from bmeg import phenotype_pb2
 from google.protobuf import json_format
 import json, sys, argparse, os
 import csv #for drug data
 import string
 import re
-import pandas as pd
+import pandas
 
 def parse_args(args):
     # We don't need the first argument, which is the program name
@@ -35,7 +35,9 @@ def parse_args(args):
     parser.add_argument('--metadrug', type=str, help='Path to the drug meta data you want to import')
     parser.add_argument('--metacellline', type=str, help='Path to the cell line meta data you want to import')
     parser.add_argument('--metaexperiment', type=str, help='Path to the experiment meta data you want to import')
+    parser.add_argument('--data', type=str, help='Path to the experiment data you want to import')
     parser.add_argument('--out', type=str, help='Path to output file (.json or .pbf_ext)')
+    parser.add_argument('--multi', type=str, help='Path to output file (.json or .pbf_ext)')
     parser.add_argument('--format', type=str, default='json', help='Format of output: json or pbf (binary)')
     return parser.parse_args(args)
 
@@ -58,159 +60,105 @@ def append_unique(l, i):
     if not i in l:
         l.append(i)
 
-def process_row(state, source, row): #row is a namedtuple
-    # format cell line name as in CCLE dataset
-    ccl_name_CCLE = str(row.ccl_name) + "_" + str(row.ccle_primary_site).upper()
-    sample_type = "tumor"
-    # create Biosample message for cancer cell line
-    biosample_source = "CCLE"
-    tumor_sample = find_biosample(state, biosample_source, ccl_name_CCLE, sample_type)
+def process_drugs(emit, input): #row is a namedtuple
+    drugs = set()
     
-    # Create OntologyTerm
-    ontology_term_name = "ontologyTerm:" + "http://amigo.geneontology.org/amigo/term/GO:0042493"
-    ontology_term = state['OntologyTerm'].get(ontology_term_name)
-    if ontology_term is None:
-        ontology_term = schema.OntologyTerm()
-        ontology_term.name = ontology_term_name
-        ontology_term.term = "response to drug"
-        state['OntologyTerm'][ontology_term_name] = ontology_term
-    # Create Phenotype based on the OntologyTerm
-    phenotype_name = "phenotype:" + ontology_term.name #may want to refine this later
-    phenotype = state['Phenotype'].get(phenotype_name)
-    if phenotype is None:
-        phenotype = schema.Phenotype()
-        phenotype.name = phenotype_name
-        state['Phenotype'][phenotype_name] = phenotype
+    for row in input.itertuples():
+        # create drug message for CTDD compound
+        drug_name = "drug:" + row.cpd_name # in the future might want to find canonical drug name via external resources
+        if drug_name not in drugs:
+            drug = phenotype_pb2.Compound()
+            drug.id = drug_name
+            drug.smiles = row.cpd_smiles
+            drug.synonyms.append("broad.org/cpd/" + row.broad_cpd_id)
+            #drug.synonyms.append("drug:" + row.cpd_smiles)
+            emit(drug)
+            drugs.add(drug_name)
 
-    # create drug message for CTDD compound
-    drug_name = "drug:" + row.cpd_name # in the future might want to find canonical drug name via external resources
-    drug = state['Drug'].get(drug_name)
-    if drug is None:
-        drug = schema.Drug()
-        drug.name = drug_name
-        drug.synonyms.append("drug:" + row.cpd_name)
-        drug.synonyms.append("drug:" + row.broad_cpd_id)
-        drug.synonyms.append("drug:" + row.cpd_smiles)
-        state['Drug'][drug_name] = drug
+def process_response(emit, input, data):
+    
+    gid_set = set()
+    for row in input.itertuples():
+        gid = "lincs.org/%s/%s" % (row.ccl_name, row.cpd_name)
+        if gid not in gid_set:
+            response = phenotype_pb2.ResponseCurve()
+            response.gid = gid
+            response.responseType = phenotype_pb2.ResponseCurve.ACTIVITY
+            response.compound = row.cpd_name
+            response.sample = row.ccl_name
+            s = response.summary.add()
+            s.type = phenotype_pb2.ResponseSummary.EC50
+            s.value = row.apparent_ec50_umol
+            s.unit = "uM"
+            
+            for m in data.loc[lambda x: x.master_cpd_id==row.master_cpd_id, : ].loc[lambda x: x.experiment_id==row.experiment_id].itertuples():
+                dr = response.values.add()
+                dr.dose = m.cpd_conc_umol
+                dr.response = m.cpd_expt_avg_log2
+            
+            emit(response)
+            gid_set.add(gid)
 
-    # Create PhenotypeAssociation (which contains Context) based on the Drug
-    phenotype_association_name = "phenotypeAssociation:" + tumor_sample.name + drug.name + phenotype.name
-    phenotype_association = state['PhenotypeAssociation'].get(phenotype_association_name)
-    if phenotype_association is None:
-        phenotype_association = schema.PhenotypeAssociation()
-        phenotype_association.name = phenotype_association_name
-        phenotype_association.info['conc_pts_fit'] = str(row.conc_pts_fit)
-        phenotype_association.info['fit_num_param'] = str(row.fit_num_param)
-        phenotype_association.info['p1_conf_int_high'] = str(row.p1_conf_int_high)
-        phenotype_association.info['p1_conf_int_low'] = str(row.p1_conf_int_low)
-        phenotype_association.info['p2_conf_int_high'] = str(row.p2_conf_int_high)
-        phenotype_association.info['p2_conf_int_low'] = str(row.p2_conf_int_low)
-        phenotype_association.info['p4_conf_int_high'] = str(row.p4_conf_int_high)
-        phenotype_association.info['p4_conf_int_low'] = str(row.p4_conf_int_low)
-        phenotype_association.info['p1_center'] = str(row.p1_center)
-        phenotype_association.info['p2_slope'] = str(row.p2_slope)
-        phenotype_association.info['p3_total_decline'] = str(row.p3_total_decline)
-        phenotype_association.info['p4_baseline'] = str(row.p4_baseline)
-        phenotype_association.info['apparent_ec50_umol'] = str(row.apparent_ec50_umol)
-        phenotype_association.info['pred_pv_high_conc'] = str(row.pred_pv_high_conc)
-        phenotype_association.info['area_under_curve'] = str(row.area_under_curve)
-        phenotype_association.info['run_id'] = str(row.run_id)
-        phenotype_association.info['experiment_date'] = str(row.experiment_date)
-        phenotype_association.info['culture_media'] = str(row.culture_media)
-        phenotype_association.info['baseline_signal'] = str(row.baseline_signal)
-        phenotype_association.info['cells_per_well'] = str(row.cells_per_well)
-        phenotype_association.info['growth_mode'] = str(row.growth_mode)
-        phenotype_association.info['snp_fp_status'] = str(row.snp_fp_status)
-        phenotype_association.info['top_test_conc_umol'] = str(row.top_test_conc_umol)
-        phenotype_association.info['cpd_status'] = str(row.cpd_status)
-        phenotype_association.info['inclusion_rationale'] = str(row.inclusion_rationale)
-        phenotype_association.info['gene_symbol_of_protein_target'] = str(row.gene_symbol_of_protein_target)
-        phenotype_association.info['target_or_activity_of_compound'] = str(row.target_or_activity_of_compound)
-        phenotype_association.info['source_name'] = str(row.source_name)
-        phenotype_association.info['source_catalog_id'] = str(row.source_catalog_id)
-        phenotype_association.info['ccl_availability'] = str(row.ccl_availability)
-        phenotype_association.info['ccle_primary_hist'] = str(row.ccle_primary_hist)
-        phenotype_association.info['ccle_hist_subtype_1'] = str(row.ccle_hist_subtype_1)
-        state['PhenotypeAssociation'][phenotype_association_name] = phenotype_association
 
-    # make edges
-    append_unique(phenotype.isTypeEdges, ontology_term.name)
-    append_unique(phenotype_association.hasGenotypeEdges, tumor_sample.name)
-    append_unique(phenotype_association.hasPhenotypeEdges, phenotype.name)
-    append_unique(phenotype_association.hasContextEdges, drug.name)
-
-    return state
-
-def convert_all_ctdd(state, source, responsePath, metadrugPath, metacelllinePath, metaexperimentPath):
+def convert_all_ctdd(responsePath, metadrugPath, metacelllinePath, metaexperimentPath, dataPath, out, multi=None):
 
 
     # Read in Compound information into a pandas dataframe.
-    compound_df = pd.read_table(metadrugPath)
+    compound_df = pandas.read_table(metadrugPath)
     # Read in Cell line information
-    ccl_df = pd.read_table(metacelllinePath)
+    ccl_df = pandas.read_table(metacelllinePath)
     # Read in data curves for experiments
-    datacurves_df = pd.read_table(responsePath)
+    datacurves_df = pandas.read_table(responsePath)
     # Read in meta experimental data
-    metaexperiment_df = pd.read_table(metaexperimentPath)
-
-
-    ctdd_merged = pd.merge(datacurves_df, metaexperiment_df, how='left', on=['experiment_id']) # merge experiment data
-    ctdd_merged = pd.merge(ctdd_merged, compound_df, how='left', on=['master_cpd_id']) # merge with compound data frame
-    ctdd_merged = pd.merge(ctdd_merged, ccl_df, how='left', on=['master_ccl_id']) # merge with cell line data frame
-
-    # Iterate through each row of the merged dataframe and create protobuf messages when necessary
-    for row in ctdd_merged.itertuples():
-        process_row(state, source, row)
-
+    metaexperiment_df = pandas.read_table(metaexperimentPath)
+    
+    ctdd_merged = pandas.merge(datacurves_df, metaexperiment_df, how='left', on=['experiment_id']) # merge experiment data
+    ctdd_merged = pandas.merge(ctdd_merged, compound_df, how='left', on=['master_cpd_id']) # merge with compound data frame
+    ctdd_merged = pandas.merge(ctdd_merged, ccl_df, how='left', on=['master_ccl_id']) # merge with cell line data frame
+    
+    ctdd_data = pandas.read_table(dataPath)
+    #print ctdd_merged
+    
+    out_handles = {}
+    def emit_json_single(message):
+        if 'main' not in out_handles:
+            out_handles['main'] = open(out, "w")
+        msg = json.loads(json_format.MessageToJson(message))
+        msg["#label"] = message.DESCRIPTOR.full_name
+        out_handles['main'].write(json.dumps(msg))
+        out_handles['main'].write("\n")
+    def emit_json_multi(message):
+        if message.DESCRIPTOR.full_name not in out_handles:
+            out_handles[message.DESCRIPTOR.full_name] = open(multi + "." + message.DESCRIPTOR.full_name + ".json", "w")
+        msg = json.loads(json_format.MessageToJson(message))
+        out_handles[message.DESCRIPTOR.full_name].write(json.dumps(msg))
+        out_handles[message.DESCRIPTOR.full_name].write("\n")
+    if out is not None:
+        emit = emit_json_single
+    if multi is not None:
+        emit = emit_json_multi
+    
+    ctdd_merged.to_csv("test.out", sep="\t")    
+    
+    process_drugs(emit, ctdd_merged)
+    process_response(emit, ctdd_merged, ctdd_data)
+    
 ########################################
 
-def splice_path(path, s):
-    #print(path, s)
-    path_split = path.split('.')
-    suffix = path_split[-1]
-    path_parts = path_split[:-1]
-    path_parts.extend([s, suffix])
-    return '.'.join(path_parts) #string.join(path_parts, '.')
-
 def message_to_json(message):
-    json = json_format.MessageToJson(message)
-    return re.sub(r' +', ' ', json.replace('\n', ''))
+    msg = json.loads(json_format.MessageToJson(message))
+    msg['#label'] = message.DESCRIPTOR.name
+    return json.dumps(msg)
 
-def write_messages(state, outpath, format):
-    if format == 'json':
-        for message in state:
-            outmessage = splice_path(outpath, message)
-            messages = list(map(message_to_json, state[message].values())) #[message_to_json(value) for value in state[message].values()]
-            if len(messages) > 0:
-                out = '\n'.join(messages) #string.join(messages, '\n')
-                outhandle = open(outmessage, 'w')
-                outhandle.write(out)
-                outhandle.close()
-    else:
-        for message in state:
-            outmessage = splice_path(outpath, message)
-            messages = list(map(lambda m: m.SerializeToString(), state[message].values())) #[value.SerializeToString() for value in state[message].values()]
-            if len(messages) > 0:
-                out = b'\n'.join(messages) #string.join(messages, '\n')
-                outhandle = open(outmessage, 'wb')
-                outhandle.write(out)
-                outhandle.close()
 
-def convert_to_profobuf(responsePath, metadrugPath, metacelllinePath, metaexperimentPath, outpath, format):
-    state = {'Biosample': {},
-             'Drug': {},
-             'OntologyTerm': {},
-             'Phenotype': {},
-             'PhenotypeAssociation': {}}
-    source = 'CTDD'
-
-    if responsePath and metadrugPath and metacelllinePath and metaexperimentPath and outpath and format:
-        convert_all_ctdd(state, source, responsePath, metadrugPath, metacelllinePath, metaexperimentPath)
+def convert_to_profobuf(responsePath, metadrugPath, metacelllinePath, metaexperimentPath, dataPath, out, multi):
+    if responsePath and metadrugPath and metacelllinePath and metaexperimentPath and (out or multi) and format:
+        convert_all_ctdd(responsePath, metadrugPath, metacelllinePath, metaexperimentPath, dataPath, out, multi)
     else:
         print("Please include all arguments")
 
-    write_messages(state, outpath, format)
+    #write_messages(state, outpath, format)
 
 if __name__ == '__main__':
     options = parse_args(sys.argv)
-    convert_to_profobuf(options.response, options.metadrug, options.metacellline, options.metaexperiment, options.out, options.format)
+    convert_to_profobuf(options.response, options.metadrug, options.metacellline, options.metaexperiment, dataPath=options.data, out=options.out, multi=options.multi)
