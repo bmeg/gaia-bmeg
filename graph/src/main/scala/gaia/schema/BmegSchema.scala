@@ -1,8 +1,8 @@
 package gaia.schema
 
-import org.json4s._
-import org.json4s.jackson.JsonMethods._
-import org.json4s.jackson.Serialization.{write}
+// import org.json4s._
+// import org.json4s.jackson.JsonMethods._
+// import org.json4s.jackson.Serialization.{write}
 
 // sealed trait PropertyTranslation[A, Z] {
 //   def translate(property: A): Map[String, Z]
@@ -22,13 +22,13 @@ import org.json4s.jackson.Serialization.{write}
 //   }
 // }
 
-object BmegSchema {
-  val gene = GaiaVertex("gene", "type", Map("symbol" -> "string"))
-  val geneSynonym = GaiaVertex("geneSynonym", "type", Map("symbol" -> "string"))
-  val geneSynonym->gene = GaiaEdge("geneSynonym", "synonymFor", "gene")
+// object BmegSchema {
+//   val gene = GaiaVertex("gene", "type", Map("symbol" -> "string"))
+//   val geneSynonym = GaiaVertex("geneSynonym", "type", Map("symbol" -> "string"))
+//   val geneSynonym->gene = GaiaEdge("geneSynonym", "synonymFor", "gene")
 
-  val vertexes = List(gene, geneSynonym)
-  val edges = List(geneSynonym->gene)
+//   val vertexes = List(gene, geneSynonym)
+//   val edges = List(geneSynonym->gene)
 
-  val schema = GaiaSchema.assemble(vertexes, edges)
-}
+//   val schema = GaiaSchema.assemble(vertexes, edges)
+// }
