@@ -69,7 +69,109 @@
           </section>
         
         </div>
-        
+        <div class="mdl-layout__tab-panel" id="overview">
+          <section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp">
+            <div class="mdl-card mdl-cell--12-col">
+              <div class="mdl-card__supporting-text">
+                <h4>Welcome to BMEG</h4>
+                <div>
+                  The BioMedical Evidence Graph (BMEG) is a system to collect heterogeneous 
+                  information into a common analysis framework. It is based on a graph database
+                  and presents various enpoints that allow access to that data. There are also 
+                  HTTP API based endpoints for directly quering the graph.
+                </div>
+                <div>
+                  Graphs are an incredibly informative technique to represent biological information. 
+                  Many different types of biological information, including pathway information, 
+                  sample relationships and ontological information are best represented with graphs. 
+                </div>
+                <img src="/static/schema.svg" style="width:600px;"/>
+                <p>The BMEG currently holds:</p>
+                <ul>
+                  <li>11009 Patients</li>
+                  <li>12656 Samples</li>
+                  <li>1454128 Variant Calls</li>
+                  <li>4007 mRNA Expression Samples</li>
+                  <li>102 Drug Sensitivity Signatures</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+          <section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp">
+            <div class="mdl-card mdl-cell mdl-cell--12-col">
+              <div class="mdl-card__supporting-text mdl-grid mdl-grid--no-spacing">
+                <h4 class="mdl-cell mdl-cell--12-col">Data Sources</h4>
+                <ul>
+                  <li>TCGA</li>
+                  <li>CCLE</li>
+                  <li>CTDD</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+          <section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp">
+            <div class="mdl-card mdl-cell mdl-cell--12-col">
+              <div class="mdl-card__supporting-text mdl-grid mdl-grid--no-spacing">
+                <h4 class="mdl-cell mdl-cell--12-col">DREAM challenges</h4>                
+                <h5><a href="https://synapse.org/DREAM_SMC" target="_blank">SMC-DNA</a></h5>
+                The ICGC-TCGA DREAM Genomic Mutation Calling Challenge was an international effort to improve 
+                standard methods for identifying cancer-associated mutations and rearrangements in whole-genome 
+                sequencing (WGS) data. Leaders of the International Cancer Genome Consortium (ICGC) and The 
+                Cancer Genome Atlas (TCGA) cancer genomics projects are joining with Sage Bionetworks and 
+                IBM-DREAM to initiate this innovative open crowd-sourced Challenge.
+                The goal of this somatic mutation calling (SMC) Challenge is to identify the most accurate mutation
+                detection algorithms, and establish the state-of-the-art. The algorithms in this Challenge must use
+                as input WGS data from tumour and normal samples and output mutation calls associated with cancer.
+              </div>
+            </div>
+          </section>
+        </div>
+        <div class="mdl-layout__tab-panel" id="server">
+          
+          <section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp">
+            <div class="mdl-card mdl-cell mdl-cell--12-col">
+              <div class="mdl-card__supporting-text mdl-grid mdl-grid--no-spacing">
+                <h4 class="mdl-cell mdl-cell--12-col">Software</h4>
+                The BMEG project represents the combination of several different software systems and projects.
+                These include workflow engines, task execution engines, best practices bioinformatics sortware pipelines, 
+                graph databases and formalized schema langauges.
+              </div>
+            </div>
+          </section>
+
+          
+          <section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp">
+            <div class="mdl-card mdl-cell mdl-cell--12-col">
+              <div class="mdl-card__supporting-text mdl-grid mdl-grid--no-spacing">
+                <h4 class="mdl-cell mdl-cell--12-col"><a href="https://github.com/bmeg/gaia" target="_blank">Gaia</a></h4>
+                A graph database management system being developed to power the BMEG
+              </div>
+            </div>
+          </section>
+          <section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp">
+            <div class="mdl-card mdl-cell mdl-cell--12-col">
+              <div class="mdl-card__supporting-text mdl-grid mdl-grid--no-spacing">
+                <h4 class="mdl-cell mdl-cell--12-col"><a href="https://github.com/bmeg/funnel" target="_blank">Funnel</a></h4>
+                Trigger the Google Genomics Pipeline API with CWL
+              </div>
+            </div>
+          </section>
+          <section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp">
+            <div class="mdl-card mdl-cell mdl-cell--12-col">
+              <div class="mdl-card__supporting-text mdl-grid mdl-grid--no-spacing">
+                <h4 class="mdl-cell mdl-cell--12-col"><a href="https://github.com/bmeg/task-execution-server">Task Execution Server</a></h4>
+                The Task Execution Schema is a GA4GH schema to deploy dockerized work using a cross 
+                platform API.
+                <lu>
+                  <li>The Task Execution Schema proposal can be found at <a href="https://github.com/ga4gh/task-execution-schemas">https://github.com/ga4gh/task-execution-schemas</a></li>
+                  <li>The Protocol Buffer Based Schema can be found at <a href="https://github.com/ga4gh/task-execution-schemas/blob/master/proto/task_execution.proto">https://github.com/ga4gh/task-execution-schemas/blob/master/proto/task_execution.proto</a></li>
+                  <li>The swagger translation can be viewed at <a href="http://editor.swagger.io/#/?import=https://github.com/ga4gh/task-execution-schemas/raw/master/swagger/proto/task_execution.swagger.json">http://editor.swagger.io/#/?import=https://github.com/ga4gh/task-execution-schemas/raw/master/swagger/proto/task_execution.swagger.json</a></li>
+                  <li>The reference implementation can be found at <a href="https://github.com/bmeg/task-execution-server">https://github.com/bmeg/task-execution-server</a></li>
+                </lu>
+              </div>
+            </div>
+          </section>
+        </div>
       </main>
       
       <footer class="mdl-mega-footer">

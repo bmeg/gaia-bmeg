@@ -265,10 +265,6 @@ var VertexViewer = React.createClass({
   }
 });
 
-window.addEventListener('load', function() {
-  ReactDOM.render(<VertexViewer />, document.getElementById('vertex-explore'));
-})
-
 function getParameterByName(name, url) {
     if (!url) {
       url = window.location.href;
@@ -280,3 +276,5 @@ function getParameterByName(name, url) {
     if (!results[2]) return '';
     return decodeURIComponent(results[2].replace(/\+/g, " "));
 }
+
+ReactDOM.render(<VertexViewer/>, document.getElementById('vertex-explore'));
