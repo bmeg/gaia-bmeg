@@ -25,12 +25,12 @@ echo $GAIA_COMMAND $COMMAND
 
 case $COMMAND in
     init)
-        $GAIA_COMMAND $COMMAND
+        $GAIA_COMMAND "$@"
     ;;
     ingest)
-        $GAIA_COMMAND $COMMAND
+        $GAIA_COMMAND "$@"
     ;;
     start)
-        $GAIA_COMMAND $COMMAND
+        $GAIA_COMMAND "$@"
     ;;
 esac
