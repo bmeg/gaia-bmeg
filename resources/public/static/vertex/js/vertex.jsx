@@ -2,6 +2,81 @@ var snipPrefix = function(s) {
   return s.substring(s.indexOf(':') + 1);
 }
 
+var nonalpha = /[^a-zA-Z]/g
+var keyify = function(s) {
+  return s.split(nonalpha).join('')
+}
+
+var PieChart = React.createClass({
+  getInitialState: function() {
+    var pie = <div><img src='/static/ripple.gif' /></div>
+    return {pie: pie}
+  },
+  
+  componentDidMount() {
+    this.props.query(function(results) {
+      var cohort = Object.keys(results).map(function(key) {
+        return {"title": key, "value": results[key]};
+      })
+
+      cohort.sort(function(a, b) {
+        return a.value < b.value ? 1 : a.value > b.value ? -1 : 0;
+      })
+
+      var el = ReactFauxDOM.createElement('svg');
+      el.setAttribute('width', 800);
+      el.setAttribute('height', 300);
+      
+      var pie = d3.layout.pie().value(function(d) {return d.value});
+      var slices = pie(cohort);
+      var arc = d3.svg.arc().innerRadius(0).outerRadius(100);
+      var color = d3.scale.category10();
+
+      var svg = d3.select(el);
+      var g = svg.append('g').attr('transform', 'translate(300, 100)');
+  
+      g.selectAll('path.piechart')
+        .data(slices, function(d) {return d.data.title})
+        .enter()
+        .append('path')
+        .attr('class', function(d) {return 'slice ' + keyify(d.data.title)})
+        .attr('d', arc)
+        .attr('fill', function(d) {return color(d.data.title)});
+  
+      svg.append('g')
+        .attr('class', 'legend')
+        .selectAll('text')
+        .data(slices, function(d) {return d.data.title})
+        .enter()
+        .append('text')
+        .text(function(d) { return '- ' + d.data.title; })
+        .attr('fill', function(d) { return color(d.data.title); })
+        .attr('y', function(d, i) { return 20 * (i + 1); })
+        .on("mouseover", function(dOver, i) { 
+          console.log("mouseover " + keyify(dOver.data.title))
+          var key = keyify(dOver.data.title)
+          d3.selectAll('.slice.' + key)
+            .attr('fill', 'white')
+        })
+        .on("mouseout", function(dOut, i) { 
+          console.log("mouseout " + keyify(dOut.data.title))
+          var key = keyify(dOut.data.title)
+          d3.selectAll('.slice.' + key)
+            .data([dOut])
+            .attr('fill', color(dOut.data.title))
+        })
+  
+      this.setState({pie: el.toReact()});
+    }.bind(this));
+  },
+  
+  render: function() {
+    return (
+      <div>{this.state.pie}</div>
+    )
+  }
+})
+
 var VertexEdges = React.createClass({
   getInitialState: function() {
     return {};
@@ -160,6 +235,24 @@ var PubmedLink = function(props) {
   return (<div><a href={url} target="_blank">{url}</a></div>)
 }
 
+var queries = {
+  variantTypeCounts: function(gene) {
+    return function(callback) {
+      Ophion().query().has("gid", ["gene:" + gene]).incoming("inGene").groupCount("variantClassification").by("variantClassification").cap(["variantClassification"]).execute(function(result) {
+        callback(result['result'][0])
+      })
+    }
+  },
+
+  mutationCounts: function(gene) {
+    return function(callback) {
+      Ophion().query().has("gid", ["gene:" + gene]).incoming("inGene").outgoing("effectOf").outgoing("tumorSample").outgoing("sampleOf").has("tumorSite", []).groupCount("tumorSite").by("tumorSite").cap(["tumorSite"]).execute(function(result) {
+        callback(result['result'][0])
+      })
+    }
+  }
+}
+
 var VertexViewer = React.createClass({
   getInitialState() {
     return {
@@ -218,7 +311,7 @@ var VertexViewer = React.createClass({
           this.setState({loading: false, error: err.toString()})
           console.error(url, status, err.toString())
         },
-        timeout: 3000,
+        timeout: 60000,
       });
     }
   },
@@ -226,7 +319,7 @@ var VertexViewer = React.createClass({
   render: function() {
     var loading = "";
     if (this.state.loading) {
-      loading = <div className="mdl-spinner mdl-js-spinner is-active"></div>
+      loading = <img src="/static/ripple.gif" width="50px" />
     }
 
     var error;
@@ -247,9 +340,17 @@ var VertexViewer = React.createClass({
       vertex = (<div><PropertiesView vertex={this.state.vertex} /><EdgesView vertex={this.state.vertex} navigate={this.setVertex} /></div>)
 
       if (this.state.vertex.properties.type === 'Pubmed') {
-        console.log(this.state.vertex.properties);
         var link = (<PubmedLink key="pubmed-link" id={this.state.vertex.properties.pmid} />)
         visualizations.push(link);
+      }
+
+      if (this.state.vertex.properties.type === 'Gene') {
+        var gene = this.state.vertex.properties.symbol;
+        var variantTypePie = <PieChart query={queries.variantTypeCounts(gene)} key='variant-type-pie' />
+        var mutationPie = <PieChart query={queries.mutationCounts(gene)} key='mutations-pie' />
+
+        visualizations.push(variantTypePie)
+        visualizations.push(mutationPie)
       }
     }
 

@@ -328,3 +328,7 @@ a {
 .gene-search-form > div {
   width: 100%;
 }
+
+.hidden {
+  display: none;
+}
