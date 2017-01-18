@@ -178,14 +178,6 @@ def convert_sample(emit, samplepath):
 
 ########################################
 
-def splice_path(path, s):
-    #print(path, s)
-    path_split = path.split('.')
-    suffix = path_split[-1]
-    path_parts = path_split[:-1]
-    path_parts.extend([s, suffix])
-    return '.'.join(path_parts) #string.join(path_parts, '.')
-
 def message_to_json(message):
     msg = json.loads(json_format.MessageToJson(message))
     msg['#label'] = message.DESCRIPTOR.name
