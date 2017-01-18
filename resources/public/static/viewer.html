@@ -33,6 +33,10 @@
     <script src="https://fb.me/react-dom-0.14.2.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
+    <script src="/static/vertex/js/classNames.js"></script>
+    <script src="/static/js/react-faux-dom.js"></script>
+    <script src="/static/mutation/ophion.js"></script>
+    <script type="text/babel" src="/static/vertex/js/vertex.jsx"></script>
     <style>
     #view-source {
       position: fixed;
@@ -49,7 +53,7 @@
     <div class="mdl-layout mdl-js-layout mdl-layout--fixed-header">
       <header class="mdl-layout__header mdl-layout__header--scroll mdl-color--primary">
         <div class="mdl-layout__header-row mdl-layout__tab-bar mdl-js-ripple-effect mdl-color--primary">
-          <img src="/static/bmeg-logo.png" height="45"/>
+          <a href="/"><img src="/static/bmeg-logo.png" height="45"/></a>
           <a href="#graph" id="graph-tab" class="mdl-layout__tab is_active">Evidence Graph</a>
           <a href="#overview" class="mdl-layout__tab">Overview</a>
           <a href="#server" class="mdl-layout__tab">Software</a>
@@ -59,27 +63,13 @@
       <main class="mdl-layout__content">
         <div class="mdl-layout__tab-panel is-active" id="graph">
           <section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp">
-            <div class="mdl-card mdl-cell mdl-cell--12-col">
-              <div class="mdl-card__supporting-text mdl-grid mdl-grid--no-spacing">                
-                <form class="gene-search-form" action="/static/viewer.html">
-                  <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-                      <label class="mdl-textfield__label" htmlFor="gene-text-input">Search for a gene...</label>
-                      <input id="gene-text-input" type="text" class="mdl-textfield__input"  autocomplete="off" />
-                      <input id="gene-text-hidden" type="hidden" name="gid" value=""/>
-                  </div>
-                </form>
-                <script>
-                  $(".gene-search-form").submit(e => {
-                    var el = $("#gene-text-input")
-                    var hidden = $("#gene-text-hidden")
-                    hidden.val("gene:" + el.val());
-                    //e.preventDefault()
-                    //e.stopPropagation()
-                  })
-                </script>
+            <div class="mdl-card mdl-cell--12-col">
+              <div class="mdl-card__supporting-text">
+                <div id="vertex-explore"></div>
               </div>
             </div>
           </section>
+        
         </div>
         <div class="mdl-layout__tab-panel" id="overview">
           <section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp">
