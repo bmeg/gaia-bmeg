@@ -39,7 +39,7 @@ def gid_biosample(name):
     return 'biosample:' + "CCLE:" + name
 
 def gid_variant_set(name):
-    return "variant_set:" + "CCLE:" + name
+    return "variantSet:" + "CCLE:" + name
 
 def gid_callset(name):
     return "callset:" + "CCLE:" + name
@@ -164,7 +164,7 @@ def convert_sample(emit, samplepath):
     with open(samplepath) as handle:
         reader = csv.DictReader(handle, delimiter="\t")
         for line in reader:
-            sample = bio_metadata_pb2.BioSample()
+            sample = bio_metadata_pb2.Biosample()
             sample.id = gid_biosample(line["CCLE name"])
             sample.dataset_id = "CCLE"
             proto_list_append(sample.info['sampleType'], "cellline")

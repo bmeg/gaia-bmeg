@@ -5,7 +5,7 @@ Authors: Malisa Smith smimal@ohsu.edu, Ryan Spangler spanglry@ohsu.edu
 This program converts CTDD drug response information into
 protobuf data based on the BMEG sample.proto schema.
 
-Source: ftp://caftpd.nci.nih.gov/pub/dcc_ctd2/Broad/CTRPv2.0_2015_ctd2_ExpandedDataset/ --> CTRPv2.0_2015_ctd2_ExpandedDataset.zip
+Source: ftp://caftpd.nci.nih.gov/pub/OCG-DCC/CTD2/Broad/CTRPv2.0_2015_ctd2_ExpandedDataset/CTRPv2.0_2015_ctd2_ExpandedDataset.zip
 
 The four files of interest (for this converter) are:
 1) v20.data.curves_post_qc.txt

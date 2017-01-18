@@ -137,7 +137,7 @@ class MafConverter(Converter):
         for i in samples:
             callset = variants_pb2.CallSet()
             callset.id = self.gid_callset(i)
-            callset.bio_sample_id = self.gid_biosample(i)
+            callset.biosample_id = self.gid_biosample(i)
             emit(callset)
 
         inhandle.close()
@@ -160,7 +160,7 @@ def convert_to_profobuf(maf, vcf, out, multi, format, bioPrefix, variantPrefix, 
             if 'main' not in out_handles:
                 out_handles['main'] = open(out, "w")
             msg = json.loads(json_format.MessageToJson(message))
-            msg[self.typeField] = message.DESCRIPTOR.full_name
+            msg[typeField] = message.DESCRIPTOR.full_name
             out_handles['main'].write(json.dumps(msg))
             out_handles['main'].write("\n")
         def emit_json_multi(message):
