@@ -1,6 +1,5 @@
-
-- 
-  type: Variant
+- type: Variant
+  gid_format: "variant:{referenceName}:{start}:{end}:"
   process: 
     - name: info
       action: RENDER_MAP_TO_PROPERTIES

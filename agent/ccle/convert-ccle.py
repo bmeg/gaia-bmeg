@@ -45,7 +45,7 @@ def gid_callset(name):
     return "callset:" + "CCLE:" + name
 
 def gid_variant(chromosome, start, end, strand, ref, alt):
-    return "variant:%s:%s:%s:%s:%s:%s" % ( chromosome, start, end, strand, ",".join(ref), ",".join(alt) )
+    return "variant:%s:%s:%s:%s:%s" % ( chromosome, start, end, ",".join(ref), ",".join(alt) )
 
 def gid_compound(name):
     return "compound:" + name
