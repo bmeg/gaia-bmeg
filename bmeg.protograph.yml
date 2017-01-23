@@ -1,8 +1,73 @@
-- type: Variant
-  gid_format: "variant:{referenceName}:{start}:{end}:"
+- label: Biosample
+  gid_format: "biosample:{datasetId}:{name}"
+
+- label: Variant
+  gid_format: "variant:{referenceName}:{start}:{end}:{referenceBases}:{join alternateBases}"
   process: 
     - name: info
-      action: RENDER_MAP_TO_PROPERTIES
+      action:
+        splice_map:
+          prefix: info
     - name: calls
-      action: CREATE_EDGE
-      
+      action:
+        repeated_edges:
+          edge_label: inCallSet
+          destination_label: CallSet
+    - name: alternateBases
+      action:
+        join_list:
+          delimiter: ","
+
+- label: CallSet
+  gid_format: "callSet:{name}"
+  process:
+    - name: biosampleId
+      action:
+        single_edge:
+          edge_label: callsFor
+          destination_label: Biosample
+
+- label: VariantAnnotation
+  gid_format: "variantAnnotation:{variantId}:{annotationSetId}"
+  process:
+    - name: transcriptEffects
+      action:
+        nested_vertex:
+          label: TranscriptEffect
+          outer_id: annotationId
+
+- label: TranscriptEffect
+  gid_format: "transcriptEffect:{featureId}:{annotationId}:{alternateBases}"
+  process:
+    - name: featureId
+      action:
+        single_edge:
+          edge_label: affectsGene
+          destination_label: Gene
+    - name: effects
+      action:
+        nested_vertex:
+          label: OntologyTerm
+          outer_id: effectId
+
+- label: OntologyTerm
+  gid_format: "ontologyTerm:{term}"
+
+{"responseType": "ACTIVITY", "summary": [{"type": "EC50", "value": 8.717773588, "unit": "uM"}, {"type": "IC50", "value": 8.0, "unit": "uM"}, {"type": "AMAX", "value": -42.55801392}, {"type": "ACTIVITY_AREA", "value": 0.7124}], "sample": "biosample:CCLE:1321N1_CENTRAL_NERVOUS_SYSTEM", "gid": "responseCurve:1321N1_CENTRAL_NERVOUS_SYSTEM:AEW541", "values": [{"response": 8.67, "dose": 0.0025}, {"response": 11.0, "dose": 0.008}, {"response": 2.16, "dose": 0.025}, {"response": 0.27, "dose": 0.08}, {"response": -10.0, "dose": 0.25}, {"response": -13.0, "dose": 0.8}, {"response": -26.0, "dose": 2.53}, {"response": -43.0, "dose": 8.0}], "compound": "compound:AEW541", "#label": "bmeg.phenotype.ResponseCurve"}
+
+- label: ResponseCurve
+  gid_format: "responseCurve:{}"
+  process:
+    - name: summary
+      action:
+        nested_vertex:
+          label: ResponseSummary
+          outer_id: curveId
+    - name: values
+      action:
+        nested_vertex:
+          label: DoseResponse
+          outer_id: curveId
+
+- label: Compound
+  gid_format: "compound:"

@@ -19,11 +19,11 @@ def proto_list_append(message, a):
 
 
 class Converter(object):
-    def __init__(self, bioPrefix, variantPrefix, variantSetPrefix, callsetPrefix, variantAnnotationPrefix, transcriptEffectPrefix, hugoPrefix, typeField):
+    def __init__(self, bioPrefix, variantPrefix, variantSetPrefix, callSetPrefix, variantAnnotationPrefix, transcriptEffectPrefix, hugoPrefix, typeField):
         self.bioPrefix = bioPrefix
         self.variantPrefix = variantPrefix
         self.variantSetPrefix = variantSetPrefix
-        self.callsetPrefix = callsetPrefix
+        self.callSetPrefix = callSetPrefix
         self.typeField = typeField
         self.variantAnnotationPrefix = variantAnnotationPrefix
         self.transcriptEffectPrefix = transcriptEffectPrefix
@@ -35,8 +35,8 @@ class Converter(object):
     def gid_variant_set(self, name):
         return '%s:%s' % (self.variantSetPrefix, name)
 
-    def gid_callset(self, name):
-        return '%s:%s' % (self.callsetPrefix, name)
+    def gid_callSet(self, name):
+        return '%s:%s' % (self.callSetPrefix, name)
 
     def gid_variant(self, chromosome, start, end, reference, alternate):
         return '%s:%s:%s:%s:%s:%s' % (self.variantPrefix, chromosome, start, end, reference, alternate)
@@ -44,8 +44,8 @@ class Converter(object):
     def gid_variant_annotation(self, variant_id, annotation_set_id):
         return '%s:%s:%s' % (self.variantAnnotationPrefix, variant_id, annotation_set_id)
 
-    def gid_transcript_effect(self, feature_id, annotation_id, alternate_bases, effects):
-        return '%s:%s:%s:%s:%s' % (self.transcriptEffectPrefix, feature_id, annotation_id, alternate_bases, effects)
+    def gid_transcript_effect(self, feature_id, annotation_id, alternate_bases):
+        return '%s:%s:%s:%s:%s' % (self.transcriptEffectPrefix, feature_id, annotation_id, alternate_bases)
 
     def gid_gene(self, name):
         return '%s:%s' % (self.hugoPrefix, name)
@@ -131,15 +131,14 @@ class MafConverter(Converter):
                     transcript_effect.id = self.gid_transcript_effect(
                         feature_id,
                         annotation_id,
-                        ','.join(alternate_bases),
-                        effect)
+                        ','.join(alternate_bases))
 
                     ontology = transcript_effect.effects.add()
                     ontology.term = effect
                     annotations.append(annotation)
                     
                 call = variants[variant_id].calls.add()
-                call.call_set_id = self.gid_callset(line[tumor_sample_barcode])                
+                call.call_set_id = self.gid_callSet(line[tumor_sample_barcode])                
                 samples.add(line[tumor_sample_barcode])
 
         for variant in variants.values():
@@ -148,23 +147,24 @@ class MafConverter(Converter):
         for annotation in annotations:
             emit(annotation)
         
-        for i in samples:
-            callset = variants_pb2.CallSet()
-            callset.id = self.gid_callset(i)
-            callset.biosample_id = self.gid_biosample(i)
-            emit(callset)
+        for sample in samples:
+            callSet = variants_pb2.CallSet()
+            callSet.id = self.gid_callSet(sample)
+            callSet.name = sample
+            callSet.biosample_id = self.gid_biosample(sample)
+            emit(callSet)
 
         inhandle.close()
 
 
-def convert_to_profobuf(maf, vcf, out, multi, format, bioPrefix, variantPrefix, variantSetPrefix, callsetPrefix, variantAnnotationPrefix, transcriptEffectPrefix, hugoPrefix, typeField):
+def convert_to_profobuf(maf, vcf, out, multi, format, bioPrefix, variantPrefix, variantSetPrefix, callSetPrefix, variantAnnotationPrefix, transcriptEffectPrefix, hugoPrefix, typeField):
     out_handles = {}
     if maf:
         m = MafConverter(
             bioPrefix=bioPrefix,
             variantPrefix=variantPrefix,
             variantSetPrefix=variantSetPrefix,
-            callsetPrefix=callsetPrefix,
+            callSetPrefix=callSetPrefix,
             variantAnnotationPrefix=variantAnnotationPrefix,
             transcriptEffectPrefix=transcriptEffectPrefix,
             hugoPrefix=hugoPrefix,
@@ -206,7 +206,7 @@ def parse_args(args):
     parser.add_argument('--bioPrefix', default='biosample')
     parser.add_argument('--variantPrefix', default='variant')
     parser.add_argument('--variantSetPrefix', default='variantSet')
-    parser.add_argument('--callsetPrefix', default='callset')
+    parser.add_argument('--callSetPrefix', default='callSet')
     parser.add_argument('--typeField', default='#label')
     parser.add_argument('--variantAnnotationPrefix', default='variantAnnotation')
     parser.add_argument('--transcriptEffectPrefix', default='transcriptEffect')

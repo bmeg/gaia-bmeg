@@ -44,8 +44,8 @@ def gid_variant_set(name):
 def gid_callset(name):
     return "callset:" + "CCLE:" + name
 
-def gid_variant(chromosome, start, end, strand, ref, alt):
-    return "variant:%s:%s:%s:%s:%s" % ( chromosome, start, end, ",".join(ref), ",".join(alt) )
+def gid_variant(chromosome, start, end, ref, alt):
+    return "variant:%s:%s:%s:%s:%s:%s" % ( chromosome, start, end, ",".join(ref), ",".join(alt) )
 
 def gid_compound(name):
     return "compound:" + name
@@ -166,6 +166,7 @@ def convert_sample(emit, samplepath):
         for line in reader:
             sample = bio_metadata_pb2.Biosample()
             sample.id = gid_biosample(line["CCLE name"])
+            sample.name = line["CCLE name"]
             sample.dataset_id = "CCLE"
             proto_list_append(sample.info['sampleType'], "cellline")
             proto_list_append(sample.info['histology'], line["Histology"])
