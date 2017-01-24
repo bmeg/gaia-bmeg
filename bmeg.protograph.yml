@@ -53,21 +53,41 @@
 - label: OntologyTerm
   gid_format: "ontologyTerm:{term}"
 
-{"responseType": "ACTIVITY", "summary": [{"type": "EC50", "value": 8.717773588, "unit": "uM"}, {"type": "IC50", "value": 8.0, "unit": "uM"}, {"type": "AMAX", "value": -42.55801392}, {"type": "ACTIVITY_AREA", "value": 0.7124}], "sample": "biosample:CCLE:1321N1_CENTRAL_NERVOUS_SYSTEM", "gid": "responseCurve:1321N1_CENTRAL_NERVOUS_SYSTEM:AEW541", "values": [{"response": 8.67, "dose": 0.0025}, {"response": 11.0, "dose": 0.008}, {"response": 2.16, "dose": 0.025}, {"response": 0.27, "dose": 0.08}, {"response": -10.0, "dose": 0.25}, {"response": -13.0, "dose": 0.8}, {"response": -26.0, "dose": 2.53}, {"response": -43.0, "dose": 8.0}], "compound": "compound:AEW541", "#label": "bmeg.phenotype.ResponseCurve"}
-
 - label: ResponseCurve
-  gid_format: "responseCurve:{}"
+  gid_format: "responseCurve:{sample}:{compound}"
   process:
     - name: summary
       action:
-        nested_vertex:
-          label: ResponseSummary
-          outer_id: curveId
+        serialize_map:
+          serialized_name: responseSummary
     - name: values
       action:
-        nested_vertex:
-          label: DoseResponse
-          outer_id: curveId
+        serialize_map:
+          serialized_name: responseValues
+    - name: compound
+      action:
+        single_edge:
+          edge_label: responseTo
+          destination_label: Compound
+    - name: sample
+      action:
+        single_edge:
+          edge_label: responseOf
+          destination_label: Biosample
 
 - label: Compound
-  gid_format: "compound:"
+  gid_format: "compound:{name}"
+  process:
+    - name: synonyms
+      action:
+        repeated_edges:
+          edge_label: compoundSynonym
+          destination_label: Compound
+
+- label: GeneExpression
+  gid_format: "geneExpression:{gid}"
+  process:
+    - name: expressions
+      action:
+        serialize_map:
+          serialized_name: serializedExpressions

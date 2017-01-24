@@ -54,18 +54,14 @@ def gid_response_curve(cellline, compound):
     return "responseCurve:%s:%s" % (cellline, compound)
 
 def gid_expression(name):
-    return "expression:%s" % (name)
-
+    return "geneExpression:%s" % (name)
 
 ########################################
-
 
 def convert_ccle_pharma_profiles(emit, csvpath):
     print('converting csv:' + csvpath)
     with open(csvpath) as pharma_file:
-        
         drugs = {}
-        
         reader = csv.DictReader(pharma_file, quotechar='"', delimiter=',', quoting=csv.QUOTE_ALL, skipinitialspace=True)
         for row in reader:
             drug_gid = gid_compound(row['Compound'])
@@ -114,10 +110,7 @@ def convert_ccle_pharma_profiles(emit, csvpath):
         for d in drugs.values():
             emit(d)
 
-
-
 def convert_expression(emit, expressionpath):
-
     with open(expressionpath) as handle:
         reader = csv.reader(handle, delimiter="\t")
         header = reader.next()
@@ -141,7 +134,7 @@ def convert_expression(emit, expressionpath):
             if len(k):
                 ge = matrix_pb2.GeneExpression()
                 ge.gid = gid_expression(k)
-                ge.bio_sample_id = gid_biosample(k)
+                ge.biosample_id = gid_biosample(k)
                 vals = {}
                 counts = {}
                 for g, val in zip(gene_order, v):
@@ -157,10 +150,8 @@ def convert_expression(emit, expressionpath):
 def proto_list_append(message, a):
     v = message.values.add()
     v.string_value = a
-    
 
 def convert_sample(emit, samplepath):
-    
     with open(samplepath) as handle:
         reader = csv.DictReader(handle, delimiter="\t")
         for line in reader:
