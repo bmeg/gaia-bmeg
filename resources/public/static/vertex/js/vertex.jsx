@@ -345,7 +345,7 @@ var VertexViewer = React.createClass({
       }
 
       if (this.state.vertex.properties.type === 'Gene') {
-        var gene = this.state.vertex.properties.symbol;
+        var gene = this.state.vertex.properties.symbol || this.state.vertex.properties.name;
         var variantTypePie = <PieChart query={queries.variantTypeCounts(gene)} key='variant-type-pie' />
         var mutationPie = <PieChart query={queries.mutationCounts(gene)} key='mutations-pie' />
 
