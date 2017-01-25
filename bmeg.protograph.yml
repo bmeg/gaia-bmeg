@@ -5,50 +5,43 @@
   gid_format: "variant:{referenceName}:{start}:{end}:{referenceBases}:{join alternateBases}"
   process: 
     - name: info
-      action:
-        splice_map:
-          prefix: info
+      splice_map:
+        prefix: info
     - name: calls
-      action:
-        repeated_edges:
-          edge_label: inCallSet
-          destination_label: CallSet
+      repeated_edges:
+        edge_label: inCallSet
+        destination_label: CallSet
     - name: alternateBases
-      action:
-        join_list:
-          delimiter: ","
+      join_list:
+        delimiter: ","
 
 - label: CallSet
   gid_format: "callSet:{name}"
   process:
     - name: biosampleId
-      action:
-        single_edge:
-          edge_label: callsFor
-          destination_label: Biosample
+      single_edge:
+        edge_label: callsFor
+        destination_label: Biosample
 
 - label: VariantAnnotation
   gid_format: "variantAnnotation:{variantId}:{annotationSetId}"
   process:
     - name: transcriptEffects
-      action:
-        nested_vertex:
-          label: TranscriptEffect
-          outer_id: annotationId
+      nested_vertex:
+        label: TranscriptEffect
+        outer_id: annotationId
 
 - label: TranscriptEffect
   gid_format: "transcriptEffect:{featureId}:{annotationId}:{alternateBases}"
   process:
     - name: featureId
-      action:
-        single_edge:
-          edge_label: affectsGene
-          destination_label: Gene
+      single_edge:
+        edge_label: affectsGene
+        destination_label: Gene
     - name: effects
-      action:
-        nested_vertex:
-          label: OntologyTerm
-          outer_id: effectId
+      nested_vertex:
+        label: OntologyTerm
+        outer_id: effectId
 
 - label: OntologyTerm
   gid_format: "ontologyTerm:{term}"
@@ -57,37 +50,31 @@
   gid_format: "responseCurve:{sample}:{compound}"
   process:
     - name: summary
-      action:
-        serialize_map:
-          serialized_name: responseSummary
+      serialize_map:
+        serialized_name: responseSummary
     - name: values
-      action:
-        serialize_map:
-          serialized_name: responseValues
+      serialize_map:
+        serialized_name: responseValues
     - name: compound
-      action:
-        single_edge:
-          edge_label: responseTo
-          destination_label: Compound
+      single_edge:
+        edge_label: responseTo
+        destination_label: Compound
     - name: sample
-      action:
-        single_edge:
-          edge_label: responseOf
-          destination_label: Biosample
+      single_edge:
+        edge_label: responseOf
+        destination_label: Biosample
 
 - label: Compound
   gid_format: "compound:{name}"
   process:
     - name: synonyms
-      action:
-        repeated_edges:
-          edge_label: compoundSynonym
-          destination_label: Compound
+      repeated_edges:
+        edge_label: compoundSynonym
+        destination_label: Compound
 
 - label: GeneExpression
   gid_format: "geneExpression:{gid}"
   process:
     - name: expressions
-      action:
-        serialize_map:
-          serialized_name: serializedExpressions
+      serialize_map:
+        serialized_name: serializedExpressions
