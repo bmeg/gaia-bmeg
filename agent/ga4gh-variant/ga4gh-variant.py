@@ -152,7 +152,7 @@ class MafConverter(Converter):
         
         for i in samples:
             callset = variants_pb2.CallSet()
-            callset.id = self.gid_callset(i)
+            callset.id = self.gid_callSet(i)
             callset.bio_sample_id = self.gid_biosample(i)
             emit(callset)
 
