@@ -10,6 +10,7 @@ import json, sys, argparse, os
 import string
 import logging
 import re
+import gzip
 
 ########################################
 
@@ -19,7 +20,7 @@ def proto_list_append(message, a):
 
 
 class Converter(object):
-    def __init__(self, bioPrefix, variantPrefix, variantSetPrefix, callSetPrefix, variantAnnotationPrefix, transcriptEffectPrefix, hugoPrefix, typeField):
+    def __init__(self, bioPrefix, variantPrefix, variantSetPrefix, callSetPrefix, variantAnnotationPrefix, transcriptEffectPrefix, hugoPrefix, typeField, centerCol):
         self.bioPrefix = bioPrefix
         self.variantPrefix = variantPrefix
         self.variantSetPrefix = variantSetPrefix
@@ -28,6 +29,7 @@ class Converter(object):
         self.variantAnnotationPrefix = variantAnnotationPrefix
         self.transcriptEffectPrefix = transcriptEffectPrefix
         self.hugoPrefix = hugoPrefix
+        self.centerCol = centerCol
         
     def gid_biosample(self, name):
         return '%s:%s' % (self.bioPrefix, name)
@@ -45,7 +47,7 @@ class Converter(object):
         return '%s:%s:%s' % (self.variantAnnotationPrefix, variant_id, annotation_set_id)
 
     def gid_transcript_effect(self, feature_id, annotation_id, alternate_bases):
-        return '%s:%s:%s:%s:%s' % (self.transcriptEffectPrefix, feature_id, annotation_id, alternate_bases)
+        return '%s:%s:%s:%s' % (self.transcriptEffectPrefix, feature_id, annotation_id, alternate_bases)
 
     def gid_gene(self, name):
         return '%s:%s' % (self.hugoPrefix, name)
@@ -88,13 +90,21 @@ class MafConverter(Converter):
         logging.info('converting maf: ' + mafpath)
         
         samples = set()
-        variants = {}
-        annotations = []
+        variants = set()
 
-        inhandle = open(mafpath)
+        header = None
+        if mafpath.endswith(".gz"):
+            inhandle = gzip.GzipFile(mafpath)
+        else:
+            inhandle = open(mafpath)
         for line_raw in inhandle:
-            if not line_raw.startswith('Hugo_Symbol') and not line_raw.startswith('#'):
+            if line_raw.startswith('Hugo_Symbol'):
+                header = line_raw.rstrip().split("\t")
+            elif line_raw.startswith('#'):
+                pass
+            else:
                 line = line_raw.rstrip().split('\t')
+                row = dict(zip(header, line))
                 alternate_bases = set([line[tumor_allele1], line[tumor_allele2]])
                 variant_id = self.gid_variant(
                     line[chromosome],
@@ -103,61 +113,53 @@ class MafConverter(Converter):
                     line[reference_allele],
                     ','.join(alternate_bases))
 
-                if variant_id not in variants:
-                    variant = variants_pb2.Variant()
-                    variant.id = variant_id
-                    variant.start = long(line[start])
-                    variant.end = long(line[end])
-                    variant.reference_name = line[chromosome]
-                    variant.reference_bases = line[reference_allele]
 
-                    for a in alternate_bases:
-                        variant.alternate_bases.append(a)
-                    proto_list_append(variant.info['hugo'], line[hugo_symbol])
-                    proto_list_append(variant.info['center'], line[center])
-                    proto_list_append(variant.info['variant_type'], line[variant_type])
-                    variants[variant_id] = variant
-                    
-                    annotation_id = self.gid_variant_annotation(variant_id, '')
-                    annotation = allele_annotations_pb2.VariantAnnotation()
-                    annotation.id = annotation_id
-                    annotation.variant_id = variant_id
-
-                    feature_id = self.gid_gene(line[hugo_symbol])
-                    effect = line[variant_type]
-                    transcript_effect = annotation.transcript_effects.add()
-                    transcript_effect.alternate_bases = ','.join(alternate_bases)
-                    transcript_effect.feature_id = feature_id
-                    transcript_effect.id = self.gid_transcript_effect(
-                        feature_id,
-                        annotation_id,
-                        ','.join(alternate_bases))
-
-                    ontology = transcript_effect.effects.add()
-                    ontology.term = effect
-                    annotations.append(annotation)
-                    
-                call = variants[variant_id].calls.add()
-                call.call_set_id = self.gid_callSet(line[tumor_sample_barcode])                
+                variant = variants_pb2.Variant()
+                variant.id = variant_id
+                variant.start = long(line[start])
+                variant.end = long(line[end])
+                variant.reference_name = line[chromosome]
+                variant.reference_bases = line[reference_allele]
+                for a in set( [line[tumor_allele1], line[tumor_allele2] ] ):
+                    variant.alternate_bases.append(a)
+                #proto_list_append(variant.info["hugo"], line[hugo_symbol])
+                for c in row[self.centerCol].split("|"):
+                    proto_list_append(variant.info["center"], c)
+                #proto_list_append(variant.info["variant_type"], line[variant_type])
+                call = variant.calls.add()
+                call.call_set_id = self.gid_callSet(line[tumor_sample_barcode])
                 samples.add(line[tumor_sample_barcode])
+                emit(variant)
 
-        for variant in variants.values():
-            emit(variant)
+                annotation_id = self.gid_variant_annotation(variant_id, '')
+                annotation = allele_annotations_pb2.VariantAnnotation()
+                annotation.id = annotation_id
+                annotation.variant_id = variant_id
+                feature_id = self.gid_gene(line[hugo_symbol])
+                effect = line[variant_type]
+                transcript_effect = annotation.transcript_effects.add()
+                transcript_effect.alternate_bases = ','.join(alternate_bases)
+                transcript_effect.feature_id = feature_id
+                transcript_effect.id = self.gid_transcript_effect(
+                    feature_id,
+                    annotation_id,
+                    ','.join(alternate_bases))
 
-        for annotation in annotations:
-            emit(annotation)
+                ontology = transcript_effect.effects.add()
+                ontology.term = effect
+                #annotations.append(annotation)
+                emit(annotation)
         
-        for sample in samples:
-            callSet = variants_pb2.CallSet()
-            callSet.id = self.gid_callSet(sample)
-            callSet.name = sample
-            callSet.biosample_id = self.gid_biosample(sample)
-            emit(callSet)
+        for i in samples:
+            callset = variants_pb2.CallSet()
+            callset.id = self.gid_callset(i)
+            callset.bio_sample_id = self.gid_biosample(i)
+            emit(callset)
 
         inhandle.close()
 
 
-def convert_to_profobuf(maf, vcf, out, multi, format, bioPrefix, variantPrefix, variantSetPrefix, callSetPrefix, variantAnnotationPrefix, transcriptEffectPrefix, hugoPrefix, typeField):
+def convert_to_profobuf(maf, vcf, out, multi, format, bioPrefix, variantPrefix, variantSetPrefix, callSetPrefix, variantAnnotationPrefix, transcriptEffectPrefix, hugoPrefix, typeField, centerCol):
     out_handles = {}
     if maf:
         m = MafConverter(
@@ -168,7 +170,8 @@ def convert_to_profobuf(maf, vcf, out, multi, format, bioPrefix, variantPrefix, 
             variantAnnotationPrefix=variantAnnotationPrefix,
             transcriptEffectPrefix=transcriptEffectPrefix,
             hugoPrefix=hugoPrefix,
-            typeField=typeField
+            typeField=typeField,
+            centerCol=centerCol
         )
         def emit_json_single(message):
             if 'main' not in out_handles:
@@ -176,7 +179,7 @@ def convert_to_profobuf(maf, vcf, out, multi, format, bioPrefix, variantPrefix, 
             msg = json.loads(json_format.MessageToJson(message))
             msg[typeField] = message.DESCRIPTOR.full_name
             out_handles['main'].write(json.dumps(msg))
-            out_handles['main'].write('\n')
+            out_handles['main'].write("\n")
         def emit_json_multi(message):
             if message.DESCRIPTOR.full_name not in out_handles:
                 out_handles[message.DESCRIPTOR.full_name] = open(multi + '.' + message.DESCRIPTOR.full_name + '.json', 'w')
@@ -211,6 +214,7 @@ def parse_args(args):
     parser.add_argument('--variantAnnotationPrefix', default='variantAnnotation')
     parser.add_argument('--transcriptEffectPrefix', default='transcriptEffect')
     parser.add_argument('--hugoPrefix', default='gene')
+    parser.add_argument('--center', dest="centerCol", default='center', help='caller field')
     
     parser.add_argument('--format', type=str, default='json', help='Format of output: json or pbf (binary)')
     return parser.parse_args(args)
