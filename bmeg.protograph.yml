@@ -31,8 +31,9 @@
   gid: "variantAnnotation:{{variantId}}:{{annotationSetId}}"
   actions:
     - field: transcriptEffects
-      nested_vertex:
-        label: TranscriptEffect
+      inner_vertex:
+        edge_label: transcriptEffectOf
+        destination_label: TranscriptEffect
         outer_id: annotationId
 
 - label: TranscriptEffect
@@ -43,8 +44,9 @@
         edge_label: affectsGene
         destination_label: Gene
     - field: effects
-      nested_vertex:
-        label: OntologyTerm
+      inner_vertex:
+        edge_label: termFor
+        destination_label: OntologyTerm
         outer_id: effectId
 
 - label: OntologyTerm
