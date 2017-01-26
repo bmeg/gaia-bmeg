@@ -31,8 +31,8 @@ class Converter(object):
         self.hugoPrefix = hugoPrefix
         self.centerCol = centerCol
         
-    def gid_biosample(self, name):
-        return '%s:%s' % (self.bioPrefix, name)
+    def gid_biosample(self, source, name):
+        return '%s:%s:%s' % (self.bioPrefix, source, name)
 
     def gid_variant_set(self, name):
         return '%s:%s' % (self.variantSetPrefix, name)
@@ -154,7 +154,7 @@ class MafConverter(Converter):
             callset = variants_pb2.CallSet()
             callset.id = self.gid_call_set(sample)
             callset.name = sample
-            callset.biosample_id = self.gid_biosample(sample)
+            callset.biosample_id = self.gid_biosample("CCLE", sample)
             emit(callset)
 
         inhandle.close()
