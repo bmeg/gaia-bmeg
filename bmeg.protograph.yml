@@ -1,80 +1,80 @@
 - label: Biosample
-  gid_format: "biosample:{datasetId}:{name}"
+  gid: "biosample:{datasetId}:{name}"
 
 - label: Variant
-  gid_format: "variant:{referenceName}:{start}:{end}:{referenceBases}:{join alternateBases}"
-  process: 
-    - name: info
+  gid: "variant:{referenceName}:{start}:{end}:{referenceBases}:{join alternateBases}"
+  actions: 
+    - field: info
       splice_map:
         prefix: info
-    - name: calls
+    - field: calls
       repeated_edges:
         edge_label: inCallSet
         destination_label: CallSet
-    - name: alternateBases
+    - field: alternateBases
       join_list:
         delimiter: ","
 
 - label: CallSet
-  gid_format: "callSet:{name}"
-  process:
-    - name: biosampleId
+  gid: "callSet:{name}"
+  actions:
+    - field: biosampleId
       single_edge:
         edge_label: callsFor
         destination_label: Biosample
 
 - label: VariantAnnotation
-  gid_format: "variantAnnotation:{variantId}:{annotationSetId}"
-  process:
-    - name: transcriptEffects
+  gid: "variantAnnotation:{variantId}:{annotationSetId}"
+  actions:
+    - field: transcriptEffects
       nested_vertex:
         label: TranscriptEffect
         outer_id: annotationId
 
 - label: TranscriptEffect
-  gid_format: "transcriptEffect:{featureId}:{annotationId}:{alternateBases}"
-  process:
-    - name: featureId
+  gid: "transcriptEffect:{featureId}:{annotationId}:{alternateBases}"
+  actions:
+    - field: featureId
       single_edge:
         edge_label: affectsGene
         destination_label: Gene
-    - name: effects
+    - field: effects
       nested_vertex:
         label: OntologyTerm
         outer_id: effectId
 
 - label: OntologyTerm
-  gid_format: "ontologyTerm:{term}"
+  gid: "ontologyTerm:{term}"
 
 - label: ResponseCurve
-  gid_format: "responseCurve:{sample}:{compound}"
-  process:
-    - name: summary
+  gid: "responseCurve:{sample}:{compound}"
+  actions:
+    - field: summary
       serialize_map:
         serialized_name: responseSummary
-    - name: values
+    - field: values
       serialize_map:
         serialized_name: responseValues
-    - name: compound
+    - field: compound
       single_edge:
         edge_label: responseTo
         destination_label: Compound
-    - name: sample
+    - field: sample
       single_edge:
         edge_label: responseOf
         destination_label: Biosample
 
 - label: Compound
-  gid_format: "compound:{name}"
-  process:
-    - name: synonyms
+  gid: "compound:{name}"
+  actions:
+    - field: synonyms
       repeated_edges:
         edge_label: compoundSynonym
         destination_label: Compound
 
 - label: GeneExpression
-  gid_format: "geneExpression:{gid}"
-  process:
-    - name: expressions
+  gid: "geneExpression:{gid}"
+  actions:
+    - field: expressions
       serialize_map:
         serialized_name: serializedExpressions
