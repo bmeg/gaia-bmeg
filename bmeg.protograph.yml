@@ -1,8 +1,12 @@
 - label: Biosample
-  gid: "biosample:{datasetId}:{name}"
+  gid: "biosample:{{datasetId}}:{{name}}"
+  actions:
+    - field: info
+      splice_map:
+        prefix: info
 
 - label: Variant
-  gid: "variant:{referenceName}:{start}:{end}:{referenceBases}:{join alternateBases}"
+  gid: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{#join}}{{alternateBases}}{{/join}}"
   actions: 
     - field: info
       splice_map:
@@ -16,7 +20,7 @@
         delimiter: ","
 
 - label: CallSet
-  gid: "callSet:{name}"
+  gid: "callSet:{{name}}"
   actions:
     - field: biosampleId
       single_edge:
@@ -24,7 +28,7 @@
         destination_label: Biosample
 
 - label: VariantAnnotation
-  gid: "variantAnnotation:{variantId}:{annotationSetId}"
+  gid: "variantAnnotation:{{variantId}}:{{annotationSetId}}"
   actions:
     - field: transcriptEffects
       nested_vertex:
@@ -32,7 +36,7 @@
         outer_id: annotationId
 
 - label: TranscriptEffect
-  gid: "transcriptEffect:{featureId}:{annotationId}:{alternateBases}"
+  gid: "transcriptEffect:{{featureId}}:{{annotationId}}:{{alternateBases}}"
   actions:
     - field: featureId
       single_edge:
@@ -44,10 +48,10 @@
         outer_id: effectId
 
 - label: OntologyTerm
-  gid: "ontologyTerm:{term}"
+  gid: "ontologyTerm:{{term}}"
 
 - label: ResponseCurve
-  gid: "responseCurve:{sample}:{compound}"
+  gid: "responseCurve:{{sample}}:{{compound}}"
   actions:
     - field: summary
       serialize_map:
@@ -65,7 +69,7 @@
         destination_label: Biosample
 
 - label: Compound
-  gid: "compound:{name}"
+  gid: "compound:{{name}}"
   actions:
     - field: synonyms
       repeated_edges:
@@ -73,7 +77,7 @@
         destination_label: Compound
 
 - label: GeneExpression
-  gid: "geneExpression:{gid}"
+  gid: "geneExpression:{{gid}}"
   actions:
     - field: expressions
       serialize_map:

@@ -37,7 +37,7 @@ class Converter(object):
     def gid_variant_set(self, name):
         return '%s:%s' % (self.variantSetPrefix, name)
 
-    def gid_callSet(self, name):
+    def gid_call_set(self, name):
         return '%s:%s' % (self.callSetPrefix, name)
 
     def gid_variant(self, chromosome, start, end, reference, alternate):
@@ -127,7 +127,7 @@ class MafConverter(Converter):
                     proto_list_append(variant.info["center"], c)
                 #proto_list_append(variant.info["variant_type"], line[variant_type])
                 call = variant.calls.add()
-                call.call_set_id = self.gid_callSet(line[tumor_sample_barcode])
+                call.call_set_id = self.gid_call_set(line[tumor_sample_barcode])
                 samples.add(line[tumor_sample_barcode])
                 emit(variant)
 
@@ -150,10 +150,11 @@ class MafConverter(Converter):
                 #annotations.append(annotation)
                 emit(annotation)
         
-        for i in samples:
+        for sample in samples:
             callset = variants_pb2.CallSet()
-            callset.id = self.gid_callSet(i)
-            callset.bio_sample_id = self.gid_biosample(i)
+            callset.id = self.gid_call_set(sample)
+            callset.name = sample
+            callset.biosample_id = self.gid_biosample(sample)
             emit(callset)
 
         inhandle.close()
@@ -214,7 +215,7 @@ def parse_args(args):
     parser.add_argument('--variantAnnotationPrefix', default='variantAnnotation')
     parser.add_argument('--transcriptEffectPrefix', default='transcriptEffect')
     parser.add_argument('--hugoPrefix', default='gene')
-    parser.add_argument('--center', dest="centerCol", default='center', help='caller field')
+    parser.add_argument('--center', dest="centerCol", default='Center', help='caller field')
     
     parser.add_argument('--format', type=str, default='json', help='Format of output: json or pbf (binary)')
     return parser.parse_args(args)
