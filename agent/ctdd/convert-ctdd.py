@@ -44,11 +44,12 @@ def parse_args(args):
 ########################################
 
 def find_biosample(state, source, barcode, sample_type):
-    sample_name = 'biosample:' + source + '-' + barcode
+    sample_name = 'biosample:CCLE:' + barcode
     biosample = state['Biosample'].get(sample_name)
     if biosample is None:
         biosample = schema.Biosample()
         biosample.name = sample_name
+        biosample.dataset_id = "CCLE"
         biosample.source = source
         biosample.barcode = barcode
         biosample.sampleType = sample_type

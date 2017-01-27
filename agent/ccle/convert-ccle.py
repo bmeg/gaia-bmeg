@@ -159,6 +159,7 @@ def convert_sample(emit, samplepath):
             sample = bio_metadata_pb2.Biosample()
             sample.id = gid_biosample(line["CCLE name"])
             sample.name = line["CCLE name"]
+            sample.source = "CCLE"
             sample.dataset_id = "CCLE"
             proto_list_append(sample.info['sampleType'], "cellline")
             proto_list_append(sample.info['histology'], line["Histology"])
