@@ -1,16 +1,18 @@
 #!/usr/bin/env python
 
+# download:
+# ../gdc_scan.py files download --project TCGA-LUAD --type "Clinical Supplement"
 # example usage:
 # python -m convert.gdc.convert-clinical Individual --input ~/Data/gdc/clinical/ --output ~/Data/gdc/individual.json
 
+import os
 import re
 import json
 import argparse
 from xml.dom.minidom import parseString
-from pprint import pformat
+from google.protobuf import json_format
 
-import convert.sample_pb2 as schema
-import convert.record as record
+from ga4gh import bio_metadata_pb2
 
 def getText(nodelist):
     rc = []
@@ -39,27 +41,100 @@ def dom_scan_iter(node, stack, prefix):
             yield node, prefix, dict(node.attributes.items()), getText( node.childNodes )
         elif node.nodeType == node.TEXT_NODE:
             yield node, prefix, None, getText( node.childNodes )
-            
-class IndividualGenerator(record.RecordGenerator):
-    def __init__(self):
-        super(IndividualGenerator, self).__init__('Individual')
+
+
+
+def record_initial_state(generators):
+    state = {}
+    state['types'] = generators.keys()
+    state['generators'] = generators
+    for key in generators:
+        state[key] = {}
+
+    return state
+
+
+def process_input(state, path, process):
+    if os.path.isdir(path):
+        for item in os.listdir(path):
+            with open(os.path.join(path, item)) as input:
+                state = process(state, input)
+    else:
+        with open(path) as input:
+            state = process(state, input)
+
+    return state
+
+
+def message_to_json(message):
+    msg = json.loads(json_format.MessageToJson(message))
+    msg['#label'] = message.DESCRIPTOR.name
+    return json.dumps(msg)
+
+def output_state(state, path):
+    json = []
+    for type in state['types']:
+        for key in state[type]:
+            message = message_to_json(state[type][key])
+            json.append(message)
+    out = '\n'.join(json)
+    outhandle = open(path, 'w')
+    outhandle.write(out)
+    outhandle.close()
+
+class RecordGenerator(object):
+    def __init__(self, name):
+        self.name = name
 
     def schema(self):
-        return schema.Individual()
+        raise Exception('schema() not implemented')
+
+    def gid(self, data):
+        raise Exception('gid() not implemented')
+
+    def update(self, record, data):
+        raise Exception('update() not implemented')
+
+    def create(self, data):
+        record = self.schema()
+        gid = self.gid(data)
+        record.id = gid
+        #record.type = self.name
+        self.update(record, data)
+        return record
+
+    def find(self, state, data):
+        gid = self.gid(data)
+        record = state[self.name].get(gid)
+        if record is None:
+            record = self.create(data)
+            state[self.name][gid] = record
+        else:
+            self.update(record, data)
+        return record
+
+
+class IndividualGenerator(RecordGenerator):
+    def __init__(self):
+        super(IndividualGenerator, self).__init__('Individual')
+        
+    def schema(self):
+        return bio_metadata_pb2.Individual()
 
     def gid(self, data):
         return 'individual:' + data['bcr_patient_barcode']
 
     def update(self, individual, data):
-        individual.barcode = data['bcr_patient_barcode']
+        individual.name = data['bcr_patient_barcode']
         if 'submitted_tumor_site' in data:
-            individual.tumorSite = data['submitted_tumor_site']
+            individual.info['tumorSite'].append(data['submitted_tumor_site'])
 
         for key in data:
-            individual.observationsProperties[key] = data[key]
+            if len(data[key]):
+                individual.info[key].append(data[key])
         return individual
 
-class BiosampleGenerator(record.RecordGenerator):
+class BiosampleGenerator(RecordGenerator):
     def __init__(self, individual_gid):
         super(BiosampleGenerator, self).__init__('Biosample')
         self.individual_gid = individual_gid
@@ -202,7 +277,7 @@ def initial_state():
     individual_generator = IndividualGenerator()
     biosample_generator = BiosampleGenerator(individual_generator.gid)
 
-    return record.initial_state({'Individual': individual_generator, 'Biosample': biosample_generator})
+    return record_initial_state({'Individual': individual_generator, 'Biosample': biosample_generator})
 
 def build_processor(extract, subtype):
     def process(state, file):
@@ -231,7 +306,7 @@ if __name__ == '__main__':
     args = parse_arguments()
     extract = ClinicalParser()
     process = build_processor(extract, args.subtype)
-
+    
     state = initial_state()
-    record.process_input(state, args.input, process)
-    record.output_state(state, args.output)
+    process_input(state, args.input, process)
+    output_state(state, args.output)
