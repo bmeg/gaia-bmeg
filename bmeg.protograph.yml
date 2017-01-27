@@ -56,10 +56,10 @@
   gid: "responseCurve:{{sample}}:{{compound}}"
   actions:
     - field: summary
-      serialize_map:
+      serialize_field:
         serialized_name: responseSummary
     - field: values
-      serialize_map:
+      serialize_field:
         serialized_name: responseValues
     - field: compound
       single_edge:
@@ -82,5 +82,5 @@
   gid: "geneExpression:{{gid}}"
   actions:
     - field: expressions
-      serialize_map:
+      serialize_field:
         serialized_name: serializedExpressions
