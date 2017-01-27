@@ -78,9 +78,50 @@
         edge_label: compoundSynonym
         destination_label: Compound
 
+- label: Gene
+  gid: "gene:{{symbol}}"
+  actions:
+    - field: inFamily
+      repeated_edges:
+        edge_label: inFamily
+        destination_label: GeneFamily
+    - field: citedFrom
+      repeated_edges:
+        edge_label: citedFrom
+        destination_label: Pubmed
+
+- label: GeneSynonym
+  gid: "geneSynonym:{{symbol}}"
+  actions:
+    - field: synonymFor
+      repeated_edges:
+        edge_label: synonymFor
+        destination_label: Gene
+    - field: inDatabase
+      repeated_edges:
+        edge_label: inDatabase
+        destination_label: GeneDatabase
+    - field: info
+      splice_map:
+        prefix: info
+
+- label: GeneDatabase
+  gid: "geneDatabase:{{name}}"
+
+- label: GeneFamily
+  gid: "geneFamily:{{tag}}"
+
 - label: GeneExpression
   gid: "geneExpression:{{gid}}"
   actions:
     - field: expressions
       serialize_field:
         serialized_name: serializedExpressions
+
+- label: Cohort
+  gid: "cohort:{{name}}"
+  actions:
+    - field: hasMember
+      repeated_edges:
+        edge_label: hasMember
+        destination_label: Biosample

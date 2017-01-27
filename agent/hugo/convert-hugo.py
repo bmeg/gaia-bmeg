@@ -56,6 +56,7 @@ import csv
 import re
 from pprint import pprint
 import argparse
+import json
 from google.protobuf import json_format
 
 from bmeg import genome_pb2, nlp_pb2, record
@@ -88,10 +89,10 @@ class GeneGenerator(record.RecordGenerator):
         gene.refseq = data['RefSeq IDs']
 
         for family in data['families']:
-            record.append_unique(gene.inFamilyEdges, self.family_gid(family))
+            record.append_unique(gene.inFamily, self.family_gid(family))
 
         for citation in data['citations']:
-            record.append_unique(gene.citedFromEdges, self.pubmed_gid(citation))
+            record.append_unique(gene.citedFrom, self.pubmed_gid(citation))
 
         return gene
 
@@ -110,8 +111,8 @@ class GeneSynonymGenerator(record.RecordGenerator):
 
     def update(self, synonym, data):
         synonym.symbol = data[self.key]
-        record.append_unique(synonym.synonymForEdges, self.gene_gid(data))
-        record.append_unique(synonym.inDatabaseEdges, self.database_gid(data.get('database') or 'hugo'))
+        record.append_unique(synonym.synonymFor, self.gene_gid(data))
+        record.append_unique(synonym.inDatabase, self.database_gid(data.get('database') or 'hugo'))
         return synonym
 
 class GeneDatabaseGenerator(record.RecordGenerator):
@@ -241,6 +242,22 @@ def convert_line(state, line):
 
     return state
 
+def message_to_json(message):
+    json = json_format.MessageToJson(message)
+    return re.sub(r' +', ' ', json.replace('\n', ''))
+
+def output_state(state, prefix):
+    for type in state['types']:
+        json = []
+        for key in state[type]:
+            message = message_to_json(state[type][key])
+            json.append(message)
+
+        out = '\n'.join(json)
+        outhandle = open(prefix + '.' + type + '.json', 'w')
+        outhandle.write(out)
+        outhandle.close()
+
 def convert_hugo(file):
     state = initial_state()
     reader = csv.DictReader(file, delimiter='\t')
@@ -255,7 +272,7 @@ def parse_args(args):
         formatter_class=argparse.RawDescriptionHelpFormatter)
 
     parser.add_argument('--hugo', type=str, help='path to the hugo source file')
-    parser.add_argument('--out', type=str, help='Path to output file (.json or .pbf_ext)')
+    parser.add_argument('--out', type=str, default='hugo', help='Path to output files (.json or .pbf_ext)')
     parser.add_argument('--format', type=str, default='json', help='Format of output: json or pbf (binary)')
 
     return parser.parse_args(args)
@@ -263,4 +280,4 @@ def parse_args(args):
 if __name__ == '__main__':
     options = parse_args(sys.argv)
     state = convert_hugo(open(options.hugo))
-    record.output_state(state, options.out)
+    output_state(state, options.out)
