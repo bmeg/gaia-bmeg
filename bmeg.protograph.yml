@@ -12,9 +12,10 @@
       splice_map:
         prefix: info
     - field: calls
-      repeated_edges:
+      embedded_edges:
         edge_label: inCallSet
         destination_label: CallSet
+        embedded_in: callSetId
     - field: alternateBases
       join_list:
         delimiter: ","
