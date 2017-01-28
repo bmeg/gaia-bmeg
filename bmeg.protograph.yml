@@ -6,7 +6,7 @@
         prefix: info
 
 - label: Variant
-  gid: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{#join}}{{alternateBases}}{{/join}}"
+  gid: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases}}"
   actions: 
     - field: info
       splice_map:
