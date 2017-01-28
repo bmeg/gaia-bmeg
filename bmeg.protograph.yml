@@ -38,7 +38,7 @@
     - field: variantId
       single_edge:
         edge_label: annotationFor
-        destination_label: Biosample
+        destination_label: Variant
     - field: variantId
       store_field:
         store: true
