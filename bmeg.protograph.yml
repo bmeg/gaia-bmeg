@@ -35,6 +35,13 @@
         edge_label: transcriptEffectOf
         destination_label: TranscriptEffect
         outer_id: annotationId
+    - field: variantId
+      single_edge:
+        edge_label: annotationFor
+        destination_label: Biosample
+    - field: variantId
+      store_field:
+        store: true
 
 - label: TranscriptEffect
   gid: "transcriptEffect:{{featureId}}:{{annotationId}}:{{alternateBases}}"

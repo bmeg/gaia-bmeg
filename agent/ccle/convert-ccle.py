@@ -153,13 +153,15 @@ def proto_list_append(message, a):
     v.string_value = a
 
 def convert_sample(emit, samplepath):
+    cohort = matrix_pb2.Cohort()
+    cohort.name = 'CCLE'
     with open(samplepath) as handle:
         reader = csv.DictReader(handle, delimiter="\t")
         for line in reader:
             sample = bio_metadata_pb2.Biosample()
             sample.id = gid_biosample(line["CCLE name"])
             sample.name = line["CCLE name"]
-            sample.source = "CCLE"
+            # sample.source = "CCLE"
             sample.dataset_id = "CCLE"
             proto_list_append(sample.info['sampleType'], "cellline")
             proto_list_append(sample.info['histology'], line["Histology"])
@@ -168,7 +170,10 @@ def convert_sample(emit, samplepath):
                 proto_list_append(sample.info['source'], line['Source'])
             if len(line['Notes']):
                 proto_list_append(sample.info['notes'], line['Notes'])
-            emit(sample)
+            cohort.hasMember.append(sample.id)
+            # emit(sample)
+    emit(cohort)
+
 
 ########################################
 
@@ -177,8 +182,7 @@ def message_to_json(message):
     msg['#label'] = message.DESCRIPTOR.name
     return json.dumps(msg)
 
-def convert_to_profobuf(drugpath, samplepath, expressionpath, out, multi, format):
-    
+def convert_to_protobuf(drugpath, samplepath, expressionpath, out, multi, format):
     out_handles = {}
     def emit_json_single(message):
         if 'main' not in out_handles:
@@ -204,7 +208,7 @@ def convert_to_profobuf(drugpath, samplepath, expressionpath, out, multi, format
         convert_sample(emit, samplepath)
     if expressionpath:
         convert_expression(emit, expressionpath)
-
+        
     for handle in out_handles.values():
         handle.close()
 
@@ -227,4 +231,4 @@ def parse_args(args):
 
 if __name__ == '__main__':
     options = parse_args(sys.argv)
-    convert_to_profobuf(options.drug, options.sample, options.expression, options.out, options.multi, options.format)
+    convert_to_protobuf(options.drug, options.sample, options.expression, options.out, options.multi, options.format)
