@@ -126,8 +126,9 @@ class MafConverter(Converter):
                 for a in set( [line[tumor_allele1], line[tumor_allele2] ] ):
                     variant.alternate_bases.append(a)
                 #proto_list_append(variant.info["hugo"], line[hugo_symbol])
-                for c in row[self.centerCol].split("|"):
-                    proto_list_append(variant.info["center"], c)
+                if self.centerCol in row:
+                    for c in row[self.centerCol].split("|"):
+                        proto_list_append(variant.info["center"], c)
                 #proto_list_append(variant.info["variant_type"], line[variant_type])
                 call = variant.calls.add()
                 call.call_set_id = self.gid_call_set(line[tumor_sample_barcode])
