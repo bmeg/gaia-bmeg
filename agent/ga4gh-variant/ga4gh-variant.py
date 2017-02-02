@@ -199,10 +199,6 @@ def convert_to_profobuf(maf, vcf, out, multi, format, bioPrefix, variantPrefix, 
         else:
             m.convert(emit, maf)
 
-        # if out is not None:
-        #     m.convert(emit_json_single, maf)
-        # if multi is not None:
-        #     m.convert(emit_json_multi, maf)
     for handle in out_handles.values():
         handle.close()
 
