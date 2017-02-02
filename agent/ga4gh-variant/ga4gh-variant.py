@@ -4,13 +4,16 @@ Authors: Malisa Smith smimal@ohsu.edu, Ryan Spangler spanglry@ohsu.edu
 
 '''
 
-from ga4gh import bio_metadata_pb2, variants_pb2, allele_annotations_pb2
-from google.protobuf import json_format
-import json, sys, argparse, os
+import re
+import os
+import sys
+import gzip
+import json
 import string
 import logging
-import re
-import gzip
+import argparse
+from ga4gh import bio_metadata_pb2, variants_pb2, allele_annotations_pb2
+from google.protobuf import json_format
 
 ########################################
 
@@ -187,10 +190,19 @@ def convert_to_profobuf(maf, vcf, out, multi, format, bioPrefix, variantPrefix, 
             msg = json.loads(json_format.MessageToJson(message))
             out_handles[message.DESCRIPTOR.full_name].write(json.dumps(msg))
             out_handles[message.DESCRIPTOR.full_name].write('\n')
-        if out is not None:
-            m.convert(emit_json_single, maf)
-        if multi is not None:
-            m.convert(emit_json_multi, maf)
+
+        emit = emit_json_single if out else emit_json_multi
+        if os.path.isdir(maf):
+            for path in os.listdir(maf):
+                if path[-4:] == '.maf':
+                    m.convert(emit, maf + '/' + path)
+        else:
+            m.convert(emit, maf)
+
+        # if out is not None:
+        #     m.convert(emit_json_single, maf)
+        # if multi is not None:
+        #     m.convert(emit_json_multi, maf)
     for handle in out_handles.values():
         handle.close()
 
