@@ -1,9 +1,135 @@
+- label: Biosample
+  gid: "biosample:{{datasetId}}:{{name}}"
+  actions:
+    - field: info
+      splice_map:
+        prefix: info
 
-- 
-  type: Variant
-  process: 
-    - name: info
-      action: RENDER_MAP_TO_PROPERTIES
-    - name: calls
-      action: CREATE_EDGE
-      
+- label: Variant
+  gid: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases}}"
+  actions: 
+    - field: info
+      splice_map:
+        prefix: info
+    - field: calls
+      embedded_edges:
+        edge_label: inCallSet
+        destination_label: CallSet
+        embedded_in: callSetId
+    - field: alternateBases
+      join_list:
+        delimiter: ","
+
+- label: CallSet
+  gid: "callSet:{{name}}"
+  actions:
+    - field: biosampleId
+      single_edge:
+        edge_label: callsFor
+        destination_label: Biosample
+
+- label: VariantAnnotation
+  gid: "variantAnnotation:{{variantId}}:{{annotationSetId}}"
+  actions:
+    - field: transcriptEffects
+      inner_vertex:
+        edge_label: transcriptEffectOf
+        destination_label: TranscriptEffect
+        outer_id: annotationId
+    - field: variantId
+      single_edge:
+        edge_label: annotationFor
+        destination_label: Variant
+    - field: variantId
+      store_field:
+        store: true
+
+- label: TranscriptEffect
+  gid: "transcriptEffect:{{featureId}}:{{annotationId}}:{{alternateBases}}"
+  actions:
+    - field: featureId
+      single_edge:
+        edge_label: affectsGene
+        destination_label: Gene
+    - field: effects
+      inner_vertex:
+        edge_label: termFor
+        destination_label: OntologyTerm
+        outer_id: effectId
+
+- label: OntologyTerm
+  gid: "ontologyTerm:{{term}}"
+
+- label: ResponseCurve
+  gid: "responseCurve:{{sample}}:{{compound}}"
+  actions:
+    - field: summary
+      serialize_field:
+        serialized_name: responseSummary
+    - field: values
+      serialize_field:
+        serialized_name: responseValues
+    - field: compound
+      single_edge:
+        edge_label: responseTo
+        destination_label: Compound
+    - field: sample
+      single_edge:
+        edge_label: responseOf
+        destination_label: Biosample
+
+- label: Compound
+  gid: "compound:{{name}}"
+  actions:
+    - field: synonyms
+      repeated_edges:
+        edge_label: compoundSynonym
+        destination_label: Compound
+
+- label: Gene
+  gid: "gene:{{symbol}}"
+  actions:
+    - field: inFamily
+      repeated_edges:
+        edge_label: inFamily
+        destination_label: GeneFamily
+    - field: citedFrom
+      repeated_edges:
+        edge_label: citedFrom
+        destination_label: Pubmed
+
+- label: GeneSynonym
+  gid: "geneSynonym:{{symbol}}"
+  actions:
+    - field: synonymFor
+      repeated_edges:
+        edge_label: synonymFor
+        destination_label: Gene
+    - field: inDatabase
+      repeated_edges:
+        edge_label: inDatabase
+        destination_label: GeneDatabase
+    - field: info
+      splice_map:
+        prefix: info
+
+- label: GeneDatabase
+  gid: "geneDatabase:{{name}}"
+
+- label: GeneFamily
+  gid: "geneFamily:{{tag}}"
+
+- label: GeneExpression
+  gid: "geneExpression:{{gid}}"
+  actions:
+    - field: expressions
+      serialize_field:
+        serialized_name: serializedExpressions
+
+- label: Cohort
+  gid: "cohort:{{name}}"
+  actions:
+    - field: hasMember
+      repeated_edges:
+        edge_label: hasMember
+        destination_label: Biosample

@@ -1,4 +1,5 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
+
 '''
 Authors: Malisa Smith smimal@ohsu.edu, Ryan Spangler spanglry@ohsu.edu
 
@@ -44,8 +45,8 @@ def gid_variant_set(name):
 def gid_callset(name):
     return "callset:" + "CCLE:" + name
 
-def gid_variant(chromosome, start, end, strand, ref, alt):
-    return "variant:%s:%s:%s:%s:%s:%s" % ( chromosome, start, end, strand, ",".join(ref), ",".join(alt) )
+def gid_variant(chromosome, start, end, ref, alt):
+    return "variant:%s:%s:%s:%s:%s:%s" % ( chromosome, start, end, ",".join(ref), ",".join(alt) )
 
 def gid_compound(name):
     return "compound:" + name
@@ -54,18 +55,14 @@ def gid_response_curve(cellline, compound):
     return "responseCurve:%s:%s" % (cellline, compound)
 
 def gid_expression(name):
-    return "expression:%s" % (name)
-
+    return "geneExpression:%s" % (name)
 
 ########################################
-
 
 def convert_ccle_pharma_profiles(emit, csvpath):
     print('converting csv:' + csvpath)
     with open(csvpath) as pharma_file:
-        
         drugs = {}
-        
         reader = csv.DictReader(pharma_file, quotechar='"', delimiter=',', quoting=csv.QUOTE_ALL, skipinitialspace=True)
         for row in reader:
             drug_gid = gid_compound(row['Compound'])
@@ -114,10 +111,7 @@ def convert_ccle_pharma_profiles(emit, csvpath):
         for d in drugs.values():
             emit(d)
 
-
-
 def convert_expression(emit, expressionpath):
-
     with open(expressionpath) as handle:
         reader = csv.reader(handle, delimiter="\t")
         header = reader.next()
@@ -141,7 +135,7 @@ def convert_expression(emit, expressionpath):
             if len(k):
                 ge = matrix_pb2.GeneExpression()
                 ge.gid = gid_expression(k)
-                ge.bio_sample_id = gid_biosample(k)
+                ge.biosample_id = gid_biosample(k)
                 vals = {}
                 counts = {}
                 for g, val in zip(gene_order, v):
@@ -157,15 +151,17 @@ def convert_expression(emit, expressionpath):
 def proto_list_append(message, a):
     v = message.values.add()
     v.string_value = a
-    
 
 def convert_sample(emit, samplepath):
-    
+    cohort = matrix_pb2.Cohort()
+    cohort.name = 'CCLE'
     with open(samplepath) as handle:
         reader = csv.DictReader(handle, delimiter="\t")
         for line in reader:
             sample = bio_metadata_pb2.Biosample()
             sample.id = gid_biosample(line["CCLE name"])
+            sample.name = line["CCLE name"]
+            # sample.source = "CCLE"
             sample.dataset_id = "CCLE"
             proto_list_append(sample.info['sampleType'], "cellline")
             proto_list_append(sample.info['histology'], line["Histology"])
@@ -174,7 +170,10 @@ def convert_sample(emit, samplepath):
                 proto_list_append(sample.info['source'], line['Source'])
             if len(line['Notes']):
                 proto_list_append(sample.info['notes'], line['Notes'])
-            emit(sample)
+            cohort.hasMember.append(sample.id)
+            # emit(sample)
+    emit(cohort)
+
 
 ########################################
 
@@ -183,8 +182,7 @@ def message_to_json(message):
     msg['#label'] = message.DESCRIPTOR.name
     return json.dumps(msg)
 
-def convert_to_profobuf(drugpath, samplepath, expressionpath, out, multi, format):
-    
+def convert_to_protobuf(drugpath, samplepath, expressionpath, out, multi, format):
     out_handles = {}
     def emit_json_single(message):
         if 'main' not in out_handles:
@@ -210,7 +208,7 @@ def convert_to_profobuf(drugpath, samplepath, expressionpath, out, multi, format
         convert_sample(emit, samplepath)
     if expressionpath:
         convert_expression(emit, expressionpath)
-
+        
     for handle in out_handles.values():
         handle.close()
 
@@ -233,4 +231,4 @@ def parse_args(args):
 
 if __name__ == '__main__':
     options = parse_args(sys.argv)
-    convert_to_profobuf(options.drug, options.sample, options.expression, options.out, options.multi, options.format)
+    convert_to_protobuf(options.drug, options.sample, options.expression, options.out, options.multi, options.format)
