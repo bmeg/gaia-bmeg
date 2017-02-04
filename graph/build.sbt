@@ -15,7 +15,7 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
   "org.apache.commons" %  "commons-math3" % "3.6.1",
-  "io.bmeg"            %% "gaia-command"     % "0.0.5-SNAPSHOT"
+  "io.bmeg"            %% "gaia-server"     % "0.0.7-SNAPSHOT"
 )
 
 libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.6.4"

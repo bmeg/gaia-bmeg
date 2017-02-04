@@ -5,8 +5,6 @@ import gremlin.scala._
 import java.lang.{Long => Llong}
 
 object GaiaBmegMigration extends GaiaMigration {
-  GaiaMigrations.registerMigrations(List(GaiaBmegMigration))
-
   val indexSpec = Map(
     "positionIndex" -> Map(
       "chromosome" -> classOf[String],

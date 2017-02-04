@@ -1,7 +1,7 @@
 graph:
   database: titan
   host: localhost
-  keyspace: gaia
+  keyspace: gaoa
 server:
   port: 11223
   facets:
