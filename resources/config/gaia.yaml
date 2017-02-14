@@ -1,7 +1,8 @@
 graph:
   database: titan
   host: localhost
-  keyspace: gaoa
+  keyspace: gaua
+  migrations: ["GaiaBmegMigration"]
 server:
   port: 11223
   facets:
