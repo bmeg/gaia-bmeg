@@ -1,4 +1,4 @@
-package gaia.migration
+package gaia.migrate
 
 import gaia.graph._
 import gremlin.scala._
