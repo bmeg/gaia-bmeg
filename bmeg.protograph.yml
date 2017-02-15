@@ -125,6 +125,10 @@
     - field: expressions
       serialize_field:
         serialized_name: serializedExpressions
+    - field: biosampleId
+      single_edge:
+        edge_label: expressionFor
+        destination: Biosample
 
 - label: Cohort
   gid: "cohort:{{name}}"

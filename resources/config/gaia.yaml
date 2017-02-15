@@ -3,6 +3,7 @@ graph:
   host: localhost
   keyspace: gaua
   migrations: ["GaiaBmegMigration"]
+  protograph: bmeg.protograph.yml
 server:
   port: 11223
   facets:
