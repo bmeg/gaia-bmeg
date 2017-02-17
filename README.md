@@ -1,6 +1,8 @@
 # gaia-bmeg
 
-BioMedical Evidence Graph for Gaia
+BioMedical Evidence Graph using the Gaia platform
+
+![BMEG](https://github.com/bmeg/gaia-bmeg/blob/master/resources/public/static/img/schema.png)
 
 ## requirements
 
