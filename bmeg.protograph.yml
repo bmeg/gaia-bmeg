@@ -128,7 +128,7 @@
     - field: biosampleId
       single_edge:
         edge_label: expressionFor
-        destination: Biosample
+        destination_label: Biosample
 
 - label: Cohort
   gid: "cohort:{{name}}"
