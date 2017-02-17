@@ -4,6 +4,11 @@
     - field: info
       splice_map:
         prefix: info
+    - field: disease
+      inner_vertex:
+        edge_label: diseaseOf
+        destination_label: OntologyTerm
+        outer_id: biosampleId
 
 - label: Variant
   gid: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases}}"

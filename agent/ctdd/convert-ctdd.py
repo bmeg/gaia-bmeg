@@ -77,16 +77,20 @@ def process_drugs(emit, input): #row is a namedtuple
             drugs.add(drug_name)
 
 def process_response(emit, input, data):
-    
     gid_set = set()
     for row in input.itertuples():
-        gid = "lincs.org/%s/%s" % (row.ccl_name, row.cpd_name)
+        site = row.ccle_primary_site.upper()
+        sample_name = '%s_%s' % (row.ccl_name, site)
+        sample = 'biosample:CCLE:' + sample_name
+        compound = 'compound:' + row.cpd_name
+        gid = "responseCurve:%s:%s" % (sample_name, row.cpd_name)
+
         if gid not in gid_set:
             response = phenotype_pb2.ResponseCurve()
             response.gid = gid
             response.responseType = phenotype_pb2.ResponseCurve.ACTIVITY
-            response.compound = row.cpd_name
-            response.sample = row.ccl_name
+            response.compound = compound
+            response.sample = sample
             s = response.summary.add()
             s.type = phenotype_pb2.ResponseSummary.EC50
             s.value = row.apparent_ec50_umol
@@ -100,10 +104,7 @@ def process_response(emit, input, data):
             emit(response)
             gid_set.add(gid)
 
-
 def convert_all_ctdd(responsePath, metadrugPath, metacelllinePath, metaexperimentPath, dataPath, out, multi=None):
-
-
     # Read in Compound information into a pandas dataframe.
     compound_df = pandas.read_table(metadrugPath)
     # Read in Cell line information

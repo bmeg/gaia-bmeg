@@ -7,7 +7,7 @@ BDIR=$( cd $(dirname $0) && pwd )
 CONVERTER_SCRIPT=${BDIR}/convert-ctdd.py
 
 DATADIR=$1
-OUTPATH="${CWD}/ctdd-converted.json"
+OUTPATH="${CWD}/ctdd.json"
 
 RESPONSE="${DATADIR}/v20.data.curves_post_qc.txt"
 METADRUG="${DATADIR}/v20.meta.per_compound.txt"

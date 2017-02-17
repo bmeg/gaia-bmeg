@@ -26,7 +26,7 @@ curl -o CCLE_Expression_2012-09-29.res "https://portals.broadinstitute.org/ccle/
 
 '''
 
-from ga4gh import bio_metadata_pb2, variants_pb2, allele_annotations_pb2
+from ga4gh import bio_metadata_pb2, variants_pb2, allele_annotations_pb2, metadata_pb2
 from bmeg import phenotype_pb2, genome_pb2, matrix_pb2
 from google.protobuf import json_format
 import json, sys, argparse, os
@@ -163,6 +163,8 @@ def convert_sample(emit, samplepath):
             sample.name = line["CCLE name"]
             # sample.source = "CCLE"
             sample.dataset_id = "CCLE"
+            sample.disease.term = line['Site Primary'].upper()
+
             proto_list_append(sample.info['sampleType'], "cellline")
             proto_list_append(sample.info['histology'], line["Histology"])
             proto_list_append(sample.info['alias'], line["Cell line primary name"])
@@ -171,8 +173,8 @@ def convert_sample(emit, samplepath):
             if len(line['Notes']):
                 proto_list_append(sample.info['notes'], line['Notes'])
             cohort.hasMember.append(sample.id)
-            # emit(sample)
-    emit(cohort)
+            emit(sample)
+    # emit(cohort)
 
 
 ########################################
