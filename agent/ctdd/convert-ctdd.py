@@ -62,47 +62,50 @@ def append_unique(l, i):
         l.append(i)
 
 def process_drugs(emit, input): #row is a namedtuple
-    drugs = set()
+    compounds = set()
     
     for row in input.itertuples():
         # create drug message for CTDD compound
-        drug_name = "drug:" + row.cpd_name # in the future might want to find canonical drug name via external resources
-        if drug_name not in drugs:
-            drug = phenotype_pb2.Compound()
-            drug.id = drug_name
-            drug.smiles = row.cpd_smiles
-            drug.synonyms.append("broad.org/cpd/" + row.broad_cpd_id)
-            #drug.synonyms.append("drug:" + row.cpd_smiles)
-            emit(drug)
-            drugs.add(drug_name)
+        compound_name = "compound:" + row.cpd_name # in the future might want to find canonical drug name via external resources
+        if compound_name not in compounds:
+            compound = phenotype_pb2.Compound()
+            compound.id = compound_name
+            compound.gid = compound_name
+            compound.name = row.cpd_name
+            compound.smiles = row.cpd_smiles
+            compound.synonyms.append("broad.org/cpd/" + row.broad_cpd_id)
+            #compound.synonyms.append("compound:" + row.cpd_smiles)
+            emit(compound)
+            compounds.add(compound_name)
 
 def process_response(emit, input, data):
     gid_set = set()
     for row in input.itertuples():
-        site = row.ccle_primary_site.upper()
-        sample_name = '%s_%s' % (row.ccl_name, site)
-        sample = 'biosample:CCLE:' + sample_name
-        compound = 'compound:' + row.cpd_name
-        gid = "responseCurve:%s:%s" % (sample_name, row.cpd_name)
+        if isinstance(row.ccle_primary_site, str):
+            site = row.ccle_primary_site.upper()
+            sample_name = '%s_%s' % (row.ccl_name, site)
+            sample = 'biosample:CCLE:' + sample_name
+            compound = 'compound:' + row.cpd_name
+            gid = "responseCurve:%s:%s" % (sample_name, row.cpd_name)
 
-        if gid not in gid_set:
-            response = phenotype_pb2.ResponseCurve()
-            response.gid = gid
-            response.responseType = phenotype_pb2.ResponseCurve.ACTIVITY
-            response.compound = compound
-            response.sample = sample
-            s = response.summary.add()
-            s.type = phenotype_pb2.ResponseSummary.EC50
-            s.value = row.apparent_ec50_umol
-            s.unit = "uM"
+            if gid not in gid_set:
+                response = phenotype_pb2.ResponseCurve()
+                response.gid = gid
+                response.responseType = phenotype_pb2.ResponseCurve.ACTIVITY
+                response.compound = compound
+                response.sample = sample
+                s = response.summary.add()
+                s.type = phenotype_pb2.ResponseSummary.EC50
+                s.value = row.apparent_ec50_umol
+                s.unit = "uM"
             
-            for m in data.loc[lambda x: x.master_cpd_id==row.master_cpd_id, : ].loc[lambda x: x.experiment_id==row.experiment_id].itertuples():
-                dr = response.values.add()
-                dr.dose = m.cpd_conc_umol
-                dr.response = m.cpd_expt_avg_log2
+                for m in data.loc[lambda x: x.master_cpd_id==row.master_cpd_id, : ].loc[lambda x: x.experiment_id==row.experiment_id].itertuples():
+                    dr = response.values.add()
+                    dr.dose = m.cpd_conc_umol
+                    dr.response = m.cpd_expt_avg_log2
             
-            emit(response)
-            gid_set.add(gid)
+                emit(response)
+                gid_set.add(gid)
 
 def convert_all_ctdd(responsePath, metadrugPath, metacelllinePath, metaexperimentPath, dataPath, out, multi=None):
     # Read in Compound information into a pandas dataframe.
