@@ -1,10 +1,4 @@
 /project/project
 /project/target
 /target
-/lib/target
-/graph/target
-/facet/target
-/agent/target
-/server/target
-/work
-/cache
+/log
