@@ -163,7 +163,7 @@ def convert_sample(emit, samplepath):
             sample.name = line["CCLE name"]
             # sample.source = "CCLE"
             sample.dataset_id = "CCLE"
-            sample.disease.term = line['Site Primary'].upper()
+            sample.disease.term = line['Site Primary'].lower().replace('_', ' ')
 
             proto_list_append(sample.info['sampleType'], "cellline")
             proto_list_append(sample.info['histology'], line["Histology"])
