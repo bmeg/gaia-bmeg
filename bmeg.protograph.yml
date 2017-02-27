@@ -135,6 +135,9 @@
         edge_label: expressionFor
         destination_label: Biosample
 
+- label: Pubmed
+  gid: "pubmed:{{id}}"
+
 - label: Cohort
   gid: "cohort:{{name}}"
   actions:
