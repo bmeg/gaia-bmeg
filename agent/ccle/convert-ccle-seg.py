@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#curl -o CCLE_copynumber_2013-12-03.seg.txt "https://portals.broadinstitute.org/ccle/downloadFile/DefaultSystemRoot/exp_10/ds_20/CCLE_copynumber_2013-12-03.seg.txt?downloadff=true&fileId=17597"
+# curl -o CCLE_copynumber_2013-12-03.seg.txt "https://portals.broadinstitute.org/ccle/downloadFile/DefaultSystemRoot/exp_10/ds_20/CCLE_copynumber_2013-12-03.seg.txt?downloadff=true&fileId=17597"
 
 import re
 import sys
@@ -175,18 +175,24 @@ SEG_STOP     = 3
 SEG_PROBES   = 4
 SEG_VALUE    = 5
 
-def gid_biosample(name):
-    return 'biosample:' + "CCLE:" + name
+def gid_biosample(sample):
+    return 'biosample:CCLE:' + sample
 
-def gid_cnacallset_set(name):
-    return "cnacallset:" + "CCLE:" + name
-
+def gid_cnacallset_set(sample):
+    return "cnaCallSet:biosample:CCLE:" + sample
 
 def parse(seg_file, gtf_file, out_base):
-
     with gzip.GzipFile(gtf_file) as handle:
         g = GTFMap()
         g.read(handle, source_filter="protein_coding", feature_filter="gene")
+
+    out_handles = {}
+    def emit_json(message):
+        if message.DESCRIPTOR.full_name not in out_handles:
+            out_handles[message.DESCRIPTOR.full_name] = open("ccle." + message.DESCRIPTOR.full_name + ".json", "w")
+        msg = json.loads(json_format.MessageToJson(message))
+        out_handles[message.DESCRIPTOR.full_name].write(json.dumps(msg))
+        out_handles[message.DESCRIPTOR.full_name].write("\n")
 
     i_map = {}
     for gene_name in g:
@@ -203,28 +209,28 @@ def parse(seg_file, gtf_file, out_base):
     with open(seg_file) as handle:
         handle.readline()
         for line in handle:
-            out = cna.CNASegment()
+            segment = cna.CNASegment()
             row = line.split("\t")
-            cnacallset_id = gid_cnacallset_set(row[SEG_SEQ])
+            cnacallset_id = gid_cnacallset_set(row[SEG_SAMPLE])
             if cnacallset_id not in callset_set:
-                c = cna.CNACallSet()
-                c.id = cnacallset_id
-                c.bio_sample_id = gid_biosample(row[SEG_SEQ])
-                print message_to_json(out)
+                callset = cna.CNACallSet()
+                callset.id = cnacallset_id
+                callset.bio_sample_id = gid_biosample(row[SEG_SAMPLE])
+                emit_json(callset)
                 callset_set.add(cnacallset_id)
 
             chrom = row[SEG_SEQ]
             start = long(float(row[SEG_START]))
             stop = long(float(row[SEG_STOP]))
-            out.reference_name = chrom
-            out.start = start
-            out.end = stop
-            out.value = float(row[SEG_VALUE])
-            out.call_set_id = cnacallset_id
+            segment.reference_name = chrom
+            segment.start = start
+            segment.end = stop
+            segment.value = float(row[SEG_VALUE])
+            segment.call_set_id = cnacallset_id
             if chrom in i_map:
                 for hit in i_map[chrom].find(start, stop+1):
-                    out.genes.append(hit.value.gene_id)
-            print message_to_json(out)
+                    segment.genes.append('gene:' + hit.value.gene_id)
+            emit_json(segment)
 
 def message_to_json(message):
     msg = json_format.MessageToDict(message)

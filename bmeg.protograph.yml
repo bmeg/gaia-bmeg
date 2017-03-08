@@ -145,3 +145,23 @@
       repeated_edges:
         edge_label: hasMember
         destination_label: Biosample
+
+- label: CNACallSet
+  gid: "cnaCallSet:{{bioSampleId}}"
+  actions:
+    - field: bioSampleId
+      single_edge:
+        edge_label: cnaCallsFor
+        destination_label: Biosample
+
+- label: CNASegment
+  gid: "cnaSegment:{{callSetId}}:{{referenceName}}:{{start}}:{{end}}:{{value}}"
+  actions:
+    - field: callSetId
+      single_edge:
+        edge_label: inCNACallSet
+        destination_label: CNACallSet
+    - field: genes
+      repeated_edges:
+        edge_label: calledInGene
+        destination_label: Gene
