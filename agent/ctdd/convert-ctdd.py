@@ -73,8 +73,11 @@ def process_drugs(emit, input): #row is a namedtuple
             compound.gid = compound_name
             compound.name = row.cpd_name
             compound.smiles = row.cpd_smiles
-            compound.synonyms.append("broad.org/cpd/" + row.broad_cpd_id)
-            #compound.synonyms.append("compound:" + row.cpd_smiles)
+            compound.status = row.cpd_status
+            compound.target = str(row.gene_symbol_of_protein_target)
+            compound.report = row.target_or_activity_of_compound
+            compound.rationale = row.inclusion_rationale
+            compound.synonyms.append(row.broad_cpd_id)
             emit(compound)
             compounds.add(compound_name)
 
@@ -94,11 +97,17 @@ def process_response(emit, input, data):
                 response.responseType = phenotype_pb2.ResponseCurve.ACTIVITY
                 response.compound = compound
                 response.sample = sample
+
                 s = response.summary.add()
                 s.type = phenotype_pb2.ResponseSummary.EC50
                 s.value = row.apparent_ec50_umol
                 s.unit = "uM"
             
+                s = response.summary.add()
+                s.type = phenotype_pb2.ResponseSummary.AUC
+                s.value = row.area_under_curve
+                s.unit = "uM"
+
                 for m in data.loc[lambda x: x.master_cpd_id==row.master_cpd_id, : ].loc[lambda x: x.experiment_id==row.experiment_id].itertuples():
                     dr = response.values.add()
                     dr.dose = m.cpd_conc_umol
