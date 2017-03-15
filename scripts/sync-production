@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+DATA_PATH=/home/spanglry/data/protograph/protograph
+
+for messages in $(find $DATA_PATH -name '*.json'); do
+  echo $(readlink -m $messages)
+  LABEL=$(echo $messages | rev | cut -d. -f2 | rev)
+  echo $LABEL
+  curl -X POST --data-binary @$(readlink -m $messages) http://bmeg.io/gaia/message/ingest/$LABEL
+done
