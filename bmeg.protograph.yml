@@ -90,6 +90,10 @@
       repeated_edges:
         edge_label: compoundSynonym
         destination_label: Compound
+    - field: target
+      single_edge:
+        edge_label: targetsGene
+        destination_label: Gene
 
 - label: Gene
   gid: "gene:{{symbol}}"

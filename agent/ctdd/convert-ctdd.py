@@ -74,7 +74,9 @@ def process_drugs(emit, input): #row is a namedtuple
             compound.name = row.cpd_name
             compound.smiles = row.cpd_smiles
             compound.status = row.cpd_status
-            compound.target = str(row.gene_symbol_of_protein_target)
+            target = row.gene_symbol_of_protein_target
+            if target and isinstance(target, str):
+                compound.target = str('gene:' + target)
             compound.report = row.target_or_activity_of_compound
             compound.rationale = row.inclusion_rationale
             compound.synonyms.append(row.broad_cpd_id)
@@ -141,12 +143,14 @@ def convert_all_ctdd(responsePath, metadrugPath, metacelllinePath, metaexperimen
         msg["#label"] = message.DESCRIPTOR.full_name
         out_handles['main'].write(json.dumps(msg))
         out_handles['main'].write("\n")
+
     def emit_json_multi(message):
         if message.DESCRIPTOR.full_name not in out_handles:
             out_handles[message.DESCRIPTOR.full_name] = open(multi + "." + message.DESCRIPTOR.full_name + ".json", "w")
         msg = json.loads(json_format.MessageToJson(message))
         out_handles[message.DESCRIPTOR.full_name].write(json.dumps(msg))
         out_handles[message.DESCRIPTOR.full_name].write("\n")
+
     if out is not None:
         emit = emit_json_single
     if multi is not None:
