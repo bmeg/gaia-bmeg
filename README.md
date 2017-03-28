@@ -50,3 +50,5 @@ There are several topics each containing their own data set which can be loaded 
 * ccle.VariantAnnotation
 * ccle.CNACallSet
 * ccle.CNASegment
+* ctdd.Compound
+* ctdd.ResponseCurve
