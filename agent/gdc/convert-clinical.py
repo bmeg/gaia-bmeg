@@ -8,6 +8,7 @@
 import os
 import re
 import json
+from copy import deepcopy
 import argparse
 from xml.dom.minidom import parseString
 from google.protobuf import json_format
@@ -103,7 +104,7 @@ class RecordGenerator(object):
         self.update(record, data)
         return record
 
-    def find(self, state, data):
+    def find(self, data):
         gid = self.gid(data)
         record = state[self.name].get(gid)
         if record is None:
@@ -113,7 +114,6 @@ class RecordGenerator(object):
             self.update(record, data)
         return record
 
-
 class IndividualGenerator(RecordGenerator):
     def __init__(self):
         super(IndividualGenerator, self).__init__('Individual')
@@ -122,10 +122,11 @@ class IndividualGenerator(RecordGenerator):
         return bio_metadata_pb2.Individual()
 
     def gid(self, data):
-        return 'individual:' + data['bcr_patient_barcode']
+        return 'individual:TCGA:' + data['bcr_patient_barcode']
 
     def update(self, individual, data):
         individual.name = data['bcr_patient_barcode']
+        individual.dataset_id = 'TCGA'
         if 'submitted_tumor_site' in data:
             individual.info['tumorSite'].append(data['submitted_tumor_site'])
 
@@ -140,19 +141,28 @@ class BiosampleGenerator(RecordGenerator):
         self.individual_gid = individual_gid
 
     def schema(self):
-        return schema.Biosample()
+        return bio_metadata_pb2.Biosample()
 
     def gid(self, data):
-        return 'biosample:' + data['bcr_sample_barcode']
+        return 'biosample:TCGA' + data['bcr_sample_barcode']
 
     def update(self, sample, data):
-        sample.barcode = data['bcr_sample_barcode']
+        sample.name = data['bcr_sample_barcode']
+        sample.dataset_id = 'TCGA'
+        if 'submitted_tumor_site' in data:
+            site = data['submitted_tumor_site']
+            print(site)
+            sample.disease.term = site
+
         # sample.sampleType = 'tumor' if re.search('tumor', data['sample_type'], re.IGNORECASE) else 'normal'
         for key in data:
-            sample.observationsProperties[key] = data[key]
+            if len(data[key]):
+                sample.info[key].append(data[key])
 
-        record.append_unique(sample.sampleOfEdges, self.individual_gid({
-            'bcr_patient_barcode': data['bcr_sample_barcode'][:12]}))
+        individual_id = {'bcr_patient_barcode': data['bcr_sample_barcode'][:12]}
+        sample.individual_id = self.individual_gid(individual_id)
+        # record.append_unique(sample.sampleOf, self.individual_gid({
+        #     'bcr_patient_barcode': data['bcr_sample_barcode'][:12]}))
 
         return sample
 
@@ -195,7 +205,7 @@ class ClinicalParser:
                 sample_barcode = None
                 for c_node, c_stack, c_attr, c_text in dom_scan(s_node, 'sample/bcr_sample_barcode'):
                     sample_barcode = c_text
-                sample_data = {}    
+                sample_data = deepcopy(patient_data)
                 for c_node, c_stack, c_attr, c_text in dom_scan(s_node, 'sample/*'):
                     if 'xsd_ver' in c_attr:
                         sample_data[c_attr.get('preferred_name', c_stack[-1])] = c_text
@@ -271,7 +281,7 @@ class ClinicalParser:
         return state
 
     def emit(self, state, key, entry, entry_type):
-        state['generators'][entry_type].find(state, entry)
+        state['generators'][entry_type].find(entry)
 
 def initial_state():
     individual_generator = IndividualGenerator()

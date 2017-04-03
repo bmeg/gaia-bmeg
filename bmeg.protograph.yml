@@ -1,9 +1,20 @@
+- label: Individual
+  gid: "individual:{{datasetId}}:{{name}}"
+  actions:
+    - field: info
+      splice_map:
+        prefix: info
+
 - label: Biosample
   gid: "biosample:{{datasetId}}:{{name}}"
   actions:
     - field: info
       splice_map:
         prefix: info
+    - field: individualId
+      single_edge:
+        edge_label: sampleOf
+        destination_label: Individual
     - field: disease
       inner_vertex:
         edge_label: diseaseOf
