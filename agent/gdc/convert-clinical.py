@@ -43,8 +43,6 @@ def dom_scan_iter(node, stack, prefix):
         elif node.nodeType == node.TEXT_NODE:
             yield node, prefix, None, getText( node.childNodes )
 
-
-
 def record_initial_state(generators):
     state = {}
     state['types'] = generators.keys()
@@ -53,7 +51,6 @@ def record_initial_state(generators):
         state[key] = {}
 
     return state
-
 
 def process_input(state, path, process):
     if os.path.isdir(path):
@@ -66,22 +63,22 @@ def process_input(state, path, process):
 
     return state
 
-
 def message_to_json(message):
     msg = json.loads(json_format.MessageToJson(message))
     msg['#label'] = message.DESCRIPTOR.name
     return json.dumps(msg)
 
 def output_state(state, path):
-    json = []
     for type in state['types']:
+        json = []
         for key in state[type]:
             message = message_to_json(state[type][key])
             json.append(message)
-    out = '\n'.join(json)
-    outhandle = open(path, 'w')
-    outhandle.write(out)
-    outhandle.close()
+        out = '\n'.join(json)
+        outpath = 'tcga.' + type + '.json'
+        outhandle = open(os.path.join(path, outpath), 'w')
+        outhandle.write(out)
+        outhandle.close()
 
 class RecordGenerator(object):
     def __init__(self, name):
@@ -165,6 +162,12 @@ class BiosampleGenerator(RecordGenerator):
         }
 
         sample.individual_id = self.individual_gid(individual_id)
+        if sample.individual_id in state['Individual']:
+            individual = state['Individual'][sample.individual_id]
+            if 'tumorSite' in individual.info:
+                if len(individual.info['tumorSite']) > 0:
+                    site = individual.info['tumorSite'][0]
+                    sample.disease.term = site
         # record.append_unique(sample.sampleOf, self.individual_gid({
         #     'bcr_patient_barcode': data['bcr_sample_barcode'][:12]}))
 
@@ -311,10 +314,10 @@ def build_processor(extract, subtype):
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('subtype')
-    # parser.add_argument('--clinical', type=str, help='path to directory containing clinical files')
-    # parser.add_argument('--biospecimen', type=str, help='path to ')
-    parser.add_argument('--input', type=str, help='path to directory containing the input files')
+    # parser.add_argument('subtype')
+    parser.add_argument('--clinical', type=str, help='path to directory containing clinical files')
+    parser.add_argument('--biospecimen', type=str, help='path to directory containing biospecimen files')
+    # parser.add_argument('--input', type=str, help='path to directory containing the input files')
     parser.add_argument('--output', type=str, help='path to output file')
     args = parser.parse_args()
     return args
@@ -322,8 +325,10 @@ def parse_arguments():
 if __name__ == '__main__':
     args = parse_arguments()
     extract = ClinicalParser()
-    process = build_processor(extract, args.subtype)
+    process_individual = build_processor(extract, "Individual")
+    process_biosample = build_processor(extract, "Biosample")
     
     state = initial_state()
-    process_input(state, args.input, process)
+    process_input(state, args.clinical, process_individual)
+    process_input(state, args.biospecimen, process_biosample)
     output_state(state, args.output)
