@@ -122,11 +122,11 @@ class IndividualGenerator(RecordGenerator):
         return bio_metadata_pb2.Individual()
 
     def gid(self, data):
-        return 'individual:TCGA:' + data['bcr_patient_barcode']
+        return 'individual:' + data['project_code'] + '-' + data['disease_code'] + ':' + data['bcr_patient_barcode']
 
     def update(self, individual, data):
         individual.name = data['bcr_patient_barcode']
-        individual.dataset_id = 'TCGA'
+        individual.dataset_id = data['project_code'] + '-' + data['disease_code']
         if 'submitted_tumor_site' in data:
             individual.info['tumorSite'].append(data['submitted_tumor_site'])
 
@@ -144,14 +144,13 @@ class BiosampleGenerator(RecordGenerator):
         return bio_metadata_pb2.Biosample()
 
     def gid(self, data):
-        return 'biosample:TCGA' + data['bcr_sample_barcode']
+        return 'biosample:' + data['project_code'] + '-' + data['disease_code'] + ':' + data['bcr_sample_barcode']
 
     def update(self, sample, data):
         sample.name = data['bcr_sample_barcode']
-        sample.dataset_id = 'TCGA'
+        sample.dataset_id = data['project_code'] + '-' + data['disease_code']
         if 'submitted_tumor_site' in data:
             site = data['submitted_tumor_site']
-            print(site)
             sample.disease.term = site
 
         # sample.sampleType = 'tumor' if re.search('tumor', data['sample_type'], re.IGNORECASE) else 'normal'
@@ -159,7 +158,12 @@ class BiosampleGenerator(RecordGenerator):
             if len(data[key]):
                 sample.info[key].append(data[key])
 
-        individual_id = {'bcr_patient_barcode': data['bcr_sample_barcode'][:12]}
+        individual_id = {
+            'project_code': data['project_code'],
+            'disease_code': data['disease_code'],
+            'bcr_patient_barcode': data['bcr_sample_barcode'][:12]
+        }
+
         sample.individual_id = self.individual_gid(individual_id)
         # record.append_unique(sample.sampleOf, self.individual_gid({
         #     'bcr_patient_barcode': data['bcr_sample_barcode'][:12]}))
@@ -177,7 +181,7 @@ class ClinicalParser:
     def __init__(self):
         pass
     
-    def parseXMLFile(self, state, dom, subtype):    
+    def parseXMLFile(self, state, dom, subtype):
         root_node = dom.childNodes[0]
         admin = {}
         for node, stack, attr, text in dom_scan(root_node, 'tcga_bcr/admin/*'):
@@ -187,7 +191,7 @@ class ClinicalParser:
         for node, stack, attr, text in dom_scan(root_node, 'tcga_bcr/patient/bcr_patient_barcode'):
             patient_barcode = text
         
-        patient_data = {}
+        patient_data = admin
         for node, stack, attr, text in dom_scan(root_node, 'tcga_bcr/patient/*'):
             extract_attribute(patient_data, stack, attr, text)
 
@@ -293,6 +297,7 @@ def build_processor(extract, subtype):
     def process(state, file):
         raw = file.read()
         try:
+            print('parsing', file.name)
             dom = parseString(raw)
         except:
             dom = None
@@ -307,7 +312,9 @@ def build_processor(extract, subtype):
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('subtype')
-    parser.add_argument('--input', type=str, help='path to input, file or directory')
+    # parser.add_argument('--clinical', type=str, help='path to directory containing clinical files')
+    # parser.add_argument('--biospecimen', type=str, help='path to ')
+    parser.add_argument('--input', type=str, help='path to directory containing the input files')
     parser.add_argument('--output', type=str, help='path to output file')
     args = parser.parse_args()
     return args
