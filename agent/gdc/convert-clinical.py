@@ -167,7 +167,7 @@ class BiosampleGenerator(RecordGenerator):
             if 'tumorSite' in individual.info:
                 if len(individual.info['tumorSite']) > 0:
                     site = individual.info['tumorSite'][0]
-                    sample.disease.term = site
+                    sample.disease.term = site.lower()
         # record.append_unique(sample.sampleOf, self.individual_gid({
         #     'bcr_patient_barcode': data['bcr_sample_barcode'][:12]}))
 
