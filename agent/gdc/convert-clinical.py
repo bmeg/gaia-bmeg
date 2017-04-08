@@ -14,6 +14,7 @@ from xml.dom.minidom import parseString
 from google.protobuf import json_format
 
 from ga4gh import bio_metadata_pb2
+from bmeg import matrix_pb2
 
 def getText(nodelist):
     rc = []
@@ -111,6 +112,21 @@ class RecordGenerator(object):
             self.update(record, data)
         return record
 
+class IndividualCohortGenerator(RecordGenerator):
+    def __init__(self, individual_gid):
+        super(IndividualCohortGenerator, self).__init__('IndividualCohort')
+        self.individual_gid = individual_gid
+        
+    def schema(self):
+        return matrix_pb2.IndividualCohort()
+
+    def gid(self, data):
+        return 'individualCohort:' + data['project_code'] + '-' + data['disease_code']
+
+    def update(self, cohort, data):
+        cohort.name = data['project_code'] + '-' + data['disease_code']
+        return cohort
+
 class IndividualGenerator(RecordGenerator):
     def __init__(self):
         super(IndividualGenerator, self).__init__('Individual')
@@ -119,11 +135,11 @@ class IndividualGenerator(RecordGenerator):
         return bio_metadata_pb2.Individual()
 
     def gid(self, data):
-        return 'individual:' + data['project_code'] + '-' + data['disease_code'] + ':' + data['bcr_patient_barcode']
+        return 'individual:' + data['project_code'] + ':' + data['bcr_patient_barcode']
 
     def update(self, individual, data):
         individual.name = data['bcr_patient_barcode']
-        individual.dataset_id = data['project_code'] + '-' + data['disease_code']
+        individual.dataset_id = data['project_code']
         if 'submitted_tumor_site' in data:
             individual.info['tumorSite'].append(data['submitted_tumor_site'])
 
@@ -141,11 +157,11 @@ class BiosampleGenerator(RecordGenerator):
         return bio_metadata_pb2.Biosample()
 
     def gid(self, data):
-        return 'biosample:' + data['project_code'] + '-' + data['disease_code'] + ':' + data['bcr_sample_barcode']
+        return 'biosample:' + data['project_code'] + ':' + data['bcr_sample_barcode']
 
     def update(self, sample, data):
         sample.name = data['bcr_sample_barcode']
-        sample.dataset_id = data['project_code'] + '-' + data['disease_code']
+        sample.dataset_id = data['project_code']
         if 'submitted_tumor_site' in data:
             site = data['submitted_tumor_site']
             sample.disease.term = site
@@ -157,7 +173,6 @@ class BiosampleGenerator(RecordGenerator):
 
         individual_id = {
             'project_code': data['project_code'],
-            'disease_code': data['disease_code'],
             'bcr_patient_barcode': data['bcr_sample_barcode'][:12]
         }
 
@@ -290,11 +305,19 @@ class ClinicalParser:
     def emit(self, state, key, entry, entry_type):
         state['generators'][entry_type].find(entry)
 
+def extract_cohorts(state):
+    for individual in state['Individual']:
+        project_code = individual.info['project_code'][0]
+        disease_code = individual.info['disease_code'][0]
+        cohort = state['generators']['IndividualCohort'].find({'project_code': project_code, 'disease_code': disease_code})
+        cohort.hasMember.append(individual.id)
+
 def initial_state():
     individual_generator = IndividualGenerator()
     biosample_generator = BiosampleGenerator(individual_generator.gid)
+    cohort_generator = IndividualCohortGenerator(individual_generator.gid)
 
-    return record_initial_state({'Individual': individual_generator, 'Biosample': biosample_generator})
+    return record_initial_state({'Individual': individual_generator, 'Biosample': biosample_generator, 'IndividualCohort': cohort_generator})
 
 def build_processor(extract, subtype):
     def process(state, file):
@@ -331,4 +354,5 @@ if __name__ == '__main__':
     state = initial_state()
     process_input(state, args.clinical, process_individual)
     process_input(state, args.biospecimen, process_biosample)
+    extract_cohorts(state)
     output_state(state, args.output)

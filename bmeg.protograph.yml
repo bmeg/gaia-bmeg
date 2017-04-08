@@ -1,9 +1,25 @@
+- label: IndividualCohort
+  gid: "individualCohort:{{name}}"
+  actions:
+    - field: hasMember
+      repeated_edges:
+        edge_label: hasMember
+        destination_label: Individual
+
 - label: Individual
   gid: "individual:{{datasetId}}:{{name}}"
   actions:
     - field: info
       splice_map:
         prefix: info
+
+- label: Cohort
+  gid: "cohort:{{name}}"
+  actions:
+    - field: hasSample
+      repeated_edges:
+        edge_label: hasSample
+        destination_label: Biosample
 
 - label: Biosample
   gid: "biosample:{{datasetId}}:{{name}}"
@@ -152,14 +168,6 @@
 
 - label: Pubmed
   gid: "pubmed:{{id}}"
-
-- label: Cohort
-  gid: "cohort:{{name}}"
-  actions:
-    - field: hasMember
-      repeated_edges:
-        edge_label: hasMember
-        destination_label: Biosample
 
 - label: CNACallSet
   gid: "cnaCallSet:{{bioSampleId}}"
