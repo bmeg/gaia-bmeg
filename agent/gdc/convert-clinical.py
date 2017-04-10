@@ -121,7 +121,8 @@ class IndividualCohortGenerator(RecordGenerator):
         return matrix_pb2.IndividualCohort()
 
     def gid(self, data):
-        return 'individualCohort:' + data['project_code'] + '-' + data['disease_code']
+        dataset = data['project_code'] + '-' + data['disease_code']
+        return 'individualCohort:' + dataset
 
     def update(self, cohort, data):
         cohort.name = data['project_code'] + '-' + data['disease_code']
@@ -135,11 +136,13 @@ class IndividualGenerator(RecordGenerator):
         return bio_metadata_pb2.Individual()
 
     def gid(self, data):
-        return 'individual:' + data['project_code'] + ':' + data['bcr_patient_barcode']
+        dataset = data['project_code'] + '-' + data['disease_code']
+        return 'individual:' + dataset + ':' + data['bcr_patient_barcode']
 
     def update(self, individual, data):
+        dataset = data['project_code'] + '-' + data['disease_code']
         individual.name = data['bcr_patient_barcode']
-        individual.dataset_id = data['project_code']
+        individual.dataset_id = dataset
         if 'submitted_tumor_site' in data:
             individual.info['tumorSite'].append(data['submitted_tumor_site'])
 
@@ -157,11 +160,13 @@ class BiosampleGenerator(RecordGenerator):
         return bio_metadata_pb2.Biosample()
 
     def gid(self, data):
-        return 'biosample:' + data['project_code'] + ':' + data['bcr_sample_barcode']
+        dataset = data['project_code'] + '-' + data['disease_code']
+        return 'biosample:' + dataset + ':' + data['bcr_sample_barcode']
 
     def update(self, sample, data):
+        dataset = data['project_code'] + '-' + data['disease_code']
         sample.name = data['bcr_sample_barcode']
-        sample.dataset_id = data['project_code']
+        sample.dataset_id = dataset
         if 'submitted_tumor_site' in data:
             site = data['submitted_tumor_site']
             sample.disease.term = site
@@ -173,6 +178,7 @@ class BiosampleGenerator(RecordGenerator):
 
         individual_id = {
             'project_code': data['project_code'],
+            'disease_code': data['disease_code'],
             'bcr_patient_barcode': data['bcr_sample_barcode'][:12]
         }
 
@@ -306,7 +312,8 @@ class ClinicalParser:
         state['generators'][entry_type].find(entry)
 
 def extract_cohorts(state):
-    for individual in state['Individual']:
+    for key in state['Individual']:
+        individual = state['Individual'][key]
         project_code = individual.info['project_code'][0]
         disease_code = individual.info['disease_code'][0]
         cohort = state['generators']['IndividualCohort'].find({'project_code': project_code, 'disease_code': disease_code})
