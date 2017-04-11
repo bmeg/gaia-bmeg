@@ -73,7 +73,6 @@ def process_expression(tree, ensembl, file, raw, emit):
     if file in tree:
         sample = tree[file]['samples'][0]
         expression = translate_values(ensembl, raw)
-
         
         out = bmeg.matrix_pb2.GeneExpression()
         for k,v in expression.items():
@@ -85,10 +84,10 @@ def process_expression(tree, ensembl, file, raw, emit):
         
 
 def convert_expression(path, ensembl, tree, emit):
+    """
     def sample_gid(data):
         return 'biosample:' + data['sample']['submitter_id']
 
-    """
     state = {
         'GeneExpression': {},
         'types': ['GeneExpression'],
@@ -122,7 +121,6 @@ def message_to_json(message):
     msg = json.loads(json_format.MessageToJson(message))
     msg['#label'] = message.DESCRIPTOR.name
     return json.dumps(msg)
-
 
 def convert(options):
     print('fetching tree')
