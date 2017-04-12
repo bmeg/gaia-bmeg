@@ -78,7 +78,7 @@ def process_expression(tree, ensembl, file, raw, emit):
         for k,v in expression.items():
             if v != 0.0:
                 out.expressions[k] = v
-        out.biosample_id = sample['submitter_id']
+        out.biosample_id = 'biosample:' + tree[file]['project_id'] + ':' + sample['submitter_id']
         out.type = sample['sample_type']
         emit(out)
         
@@ -107,11 +107,11 @@ def convert_expression(path, ensembl, tree, emit):
             if file[-3:] == '.gz':
                 opener = gzip.open
 
-            #try:
-            with opener(os.path.join(path, file), 'rb') as f:
-                process_expression(tree, ensembl, file, f.read(), emit)
-            #except:
-            #    failed.append(file)
+            try:
+                with opener(os.path.join(path, file), 'rb') as f:
+                    process_expression(tree, ensembl, file, f.read(), emit)
+            except:
+               failed.append(file)
 
     print('failed!\n' + str(failed))
 
