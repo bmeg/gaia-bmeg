@@ -1,4 +1,5 @@
 - label: IndividualCohort
+  role: Vertex
   gid: "individualCohort:{{name}}"
   actions:
     - field: hasMember
@@ -7,6 +8,7 @@
         destination_label: Individual
 
 - label: Individual
+  role: Vertex
   gid: "individual:{{datasetId}}:{{name}}"
   actions:
     - field: info
@@ -14,6 +16,7 @@
         prefix: info
 
 - label: Cohort
+  role: Vertex
   gid: "cohort:{{name}}"
   actions:
     - field: hasSample
@@ -22,6 +25,7 @@
         destination_label: Biosample
 
 - label: Biosample
+  role: Vertex
   gid: "biosample:{{datasetId}}:{{name}}"
   actions:
     - field: info
@@ -38,6 +42,7 @@
         outer_id: biosampleId
 
 - label: Variant
+  role: Vertex
   gid: "variant:{{referenceName}}:{{start}}:{{end}}:{{referenceBases}}:{{alternateBases}}"
   actions: 
     - field: info
@@ -53,6 +58,7 @@
         delimiter: ","
 
 - label: CallSet
+  role: Vertex
   gid: "callSet:{{name}}"
   actions:
     - field: biosampleId
@@ -61,15 +67,15 @@
         destination_label: Biosample
 
 - label: VariantAnnotation
+  role: PartialEdge
   gid: "variantAnnotation:{{variantId}}:{{annotationSetId}}"
   actions:
     - field: transcriptEffects
-      inner_vertex:
-        edge_label: transcriptEffectOf
-        destination_label: TranscriptEffect
+      inner_link_through:
+        destination_label: Gene
         outer_id: annotationId
     - field: variantId
-      single_edge:
+      edge_terminal:
         edge_label: annotationFor
         destination_label: Variant
     - field: variantId
@@ -77,6 +83,7 @@
         store: true
 
 - label: TranscriptEffect
+  role: PartialEdge
   gid: "transcriptEffect:{{featureId}}:{{annotationId}}:{{alternateBases}}"
   actions:
     - field: featureId
@@ -84,15 +91,14 @@
         edge_label: affectsGene
         destination_label: Gene
     - field: effects
-      inner_vertex:
-        edge_label: termFor
-        destination_label: OntologyTerm
-        outer_id: effectId
+      lift_fields: true
 
 - label: OntologyTerm
+  role: Vertex
   gid: "ontologyTerm:{{term}}"
 
 - label: ResponseCurve
+  role: Edge
   gid: "responseCurve:{{sample}}:{{compound}}"
   actions:
     - field: summary
@@ -102,15 +108,15 @@
       serialize_field:
         serialized_name: responseValues
     - field: compound
-      single_edge:
+      edge_terminal:
         edge_label: responseTo
         destination_label: Compound
     - field: sample
-      single_edge:
-        edge_label: responseOf
+      edge_terminal:
         destination_label: Biosample
 
 - label: Compound
+  role: Vertex
   gid: "compound:{{name}}"
   actions:
     - field: synonyms
@@ -123,6 +129,7 @@
         destination_label: Gene
 
 - label: Gene
+  role: Vertex
   gid: "gene:{{symbol}}"
   actions:
     - field: inFamily
@@ -135,27 +142,30 @@
         destination_label: Pubmed
 
 - label: GeneSynonym
+  role: Edge
   gid: "geneSynonym:{{symbol}}"
   actions:
     - field: synonymFor
-      repeated_edges:
+      edge_terminal:
         edge_label: synonymFor
         destination_label: Gene
     - field: inDatabase
-      repeated_edges:
-        edge_label: inDatabase
+      edge_terminal:
         destination_label: GeneDatabase
     - field: info
       splice_map:
         prefix: info
 
 - label: GeneDatabase
+  role: Vertex
   gid: "geneDatabase:{{name}}"
 
 - label: GeneFamily
+  role: Vertex
   gid: "geneFamily:{{tag}}"
 
 - label: GeneExpression
+  role: Vertex
   gid: "geneExpression:{{gid}}"
   actions:
     - field: expressions
@@ -167,23 +177,28 @@
         destination_label: Biosample
 
 - label: Pubmed
+  role: Vertex
   gid: "pubmed:{{id}}"
 
 - label: CNACallSet
+  role: PartialEdge
   gid: "cnaCallSet:{{bioSampleId}}"
   actions:
     - field: bioSampleId
-      single_edge:
+      edge_terminal:
         edge_label: cnaCallsFor
         destination_label: Biosample
 
 - label: CNASegment
+  role: Vertex
   gid: "cnaSegment:{{callSetId}}:{{referenceName}}:{{start}}:{{end}}:{{value}}"
   actions:
     - field: callSetId
-      single_edge:
-        edge_label: inCNACallSet
-        destination_label: CNACallSet
+      link_through:
+        edge_label: cnaCallsFor
+        through_label: CNACallSet
+        through_field: bioSampleId
+        destination_label: Biosample
     - field: genes
       repeated_edges:
         edge_label: calledInGene
