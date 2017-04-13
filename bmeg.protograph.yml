@@ -71,12 +71,13 @@
   gid: "variantAnnotation:{{variantId}}:{{annotationSetId}}"
   actions:
     - field: transcriptEffects
-      inner_link_through:
+      link_through:
+        edge_label: variantIn
+        through_label: TranscriptEffect
+        through_field: featureId
         destination_label: Gene
-        outer_id: annotationId
     - field: variantId
       edge_terminal:
-        edge_label: annotationFor
         destination_label: Variant
     - field: variantId
       store_field:
@@ -87,8 +88,7 @@
   gid: "transcriptEffect:{{featureId}}:{{annotationId}}:{{alternateBases}}"
   actions:
     - field: featureId
-      single_edge:
-        edge_label: affectsGene
+      edge_terminal:
         destination_label: Gene
     - field: effects
       lift_fields: true
