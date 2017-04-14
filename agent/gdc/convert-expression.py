@@ -73,22 +73,21 @@ def process_expression(tree, ensembl, file, raw, emit):
     if file in tree:
         sample = tree[file]['samples'][0]
         expression = translate_values(ensembl, raw)
-
         
         out = bmeg.matrix_pb2.GeneExpression()
         for k,v in expression.items():
             if v != 0.0:
                 out.expressions[k] = v
-        out.biosample_id = sample['submitter_id']
+        out.biosample_id = 'biosample:' + tree[file]['project_id'] + ':' + sample['submitter_id']
         out.type = sample['sample_type']
         emit(out)
         
 
 def convert_expression(path, ensembl, tree, emit):
+    """
     def sample_gid(data):
         return 'biosample:' + data['sample']['submitter_id']
 
-    """
     state = {
         'GeneExpression': {},
         'types': ['GeneExpression'],
@@ -108,11 +107,11 @@ def convert_expression(path, ensembl, tree, emit):
             if file[-3:] == '.gz':
                 opener = gzip.open
 
-            #try:
-            with opener(os.path.join(path, file), 'rb') as f:
-                process_expression(tree, ensembl, file, f.read(), emit)
-            #except:
-            #    failed.append(file)
+            try:
+                with opener(os.path.join(path, file), 'rb') as f:
+                    process_expression(tree, ensembl, file, f.read(), emit)
+            except:
+               failed.append(file)
 
     print('failed!\n' + str(failed))
 
@@ -122,7 +121,6 @@ def message_to_json(message):
     msg = json.loads(json_format.MessageToJson(message))
     msg['#label'] = message.DESCRIPTOR.name
     return json.dumps(msg)
-
 
 def convert(options):
     print('fetching tree')
