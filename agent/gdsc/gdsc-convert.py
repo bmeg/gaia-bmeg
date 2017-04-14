@@ -54,7 +54,21 @@ def gdsc_ic50_row(row, compound_table, sample_table, emit):
         dr = response.values.add()
         dr.dose = dose
         dr.response = row['raw%d' % (i) ]
-
+    
+    for i in range(1,49):
+        v = row['control%d' % i]
+        try:
+            if not math.isnan(v):
+                response.controls.append(v)
+        except TypeError:
+            pass
+    for i in range(1,33):
+        v = row['blank%d' % (i)]
+        try:
+            if not math.isnan(v):
+                response.blanks.append(v)
+        except TypeError:
+            pass
     emit(response)
 
 def gdsc_cell_info(row, emit):
