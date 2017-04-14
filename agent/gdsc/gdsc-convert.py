@@ -38,6 +38,22 @@ def gdsc_ic50_row(row, compound_table, sample_table, emit):
     s.type = phenotype_pb2.ResponseSummary.AUC
     s.value = row['AUC']
     s.unit = "uM"
+    
+    s = response.summary.add()
+    s.type = phenotype_pb2.ResponseSummary.RMSE
+    s.value = row['RMSE']
+    s.unit = "uM"
+    
+    dose = row['MAX_CONC']
+    
+    dr = response.values.add()
+    dr.dose = dose
+    dr.response = row['raw_max']
+    for i in range(2,10):
+        dose = dose / row['FOLD_DILUTION']
+        dr = response.values.add()
+        dr.dose = dose
+        dr.response = row['raw%d' % (i) ]
 
     emit(response)
 
@@ -59,7 +75,8 @@ def gdsc_cell_info(row, emit):
 conv_file = sys.argv[1]
 cell_info_file = sys.argv[2]
 compound_info_file = sys.argv[3]
-fitted_file = sys.argv[4]
+raw_file = sys.argv[4]
+fitted_file = sys.argv[5]
 
 
 cl_info = pandas.read_excel(conv_file, index_col=0)
@@ -86,10 +103,12 @@ for row in comp_info.iterrows():
     compound_table[int(row[0])] = "compound:%s" % (row[1]['Drug Name'])
 
 
-    
-    
+raw = pandas.read_excel(raw_file)
 fitted = pandas.read_excel(fitted_file)
-for r in fitted.iterrows():
+
+merge = pandas.merge(raw, fitted, on=["COSMIC_ID", "DRUG_ID"])
+
+for r in merge.iterrows():
     cosmic_id = int(r[1]["COSMIC_ID"])
     if cosmic_id in cl_info.index:
         gdsc_ic50_row( r[1], compound_table, sample_table, emit )
