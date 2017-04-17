@@ -71,13 +71,14 @@
   gid: "variantAnnotation:{{variantId}}:{{annotationSetId}}"
   actions:
     - field: transcriptEffects
-      link_through:
+      embedded_link_through:
         edge_label: variantIn
         through_label: TranscriptEffect
         through_field: featureId
         destination_label: Gene
     - field: variantId
-      edge_terminal:
+      edge_source:
+        edge_label: variantIn
         destination_label: Variant
     - field: variantId
       store_field:
@@ -89,6 +90,7 @@
   actions:
     - field: featureId
       edge_terminal:
+        edge_label: variantIn
         destination_label: Gene
     - field: effects
       lift_fields: true
@@ -108,11 +110,12 @@
       serialize_field:
         serialized_name: responseValues
     - field: compound
-      edge_terminal:
+      edge_source:
         edge_label: responseTo
         destination_label: Compound
     - field: sample
       edge_terminal:
+        edge_label: responseTo
         destination_label: Biosample
 
 - label: Compound
@@ -146,11 +149,12 @@
   gid: "geneSynonym:{{symbol}}"
   actions:
     - field: synonymFor
-      edge_terminal:
+      edge_source:
         edge_label: synonymFor
         destination_label: Gene
     - field: inDatabase
       edge_terminal:
+        edge_label: synonymFor
         destination_label: GeneDatabase
     - field: info
       splice_map:
