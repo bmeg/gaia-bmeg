@@ -15,7 +15,7 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
   "org.apache.commons" %  "commons-math3"   % "3.6.1",
-  "io.bmeg"            %% "gaia-server"     % "0.0.7-SNAPSHOT",
+  "io.bmeg"            %% "gaia-server"     % "0.0.9-SNAPSHOT",
   "io.bmeg"            %% "ladder"          % "0.0.1-SNAPSHOT"
 )
 

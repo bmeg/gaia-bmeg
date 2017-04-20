@@ -3,7 +3,7 @@
   gid: "individualCohort:{{name}}"
   actions:
     - field: hasMember
-      repeated_edges:
+      remote_edges:
         edge_label: hasMember
         destination_label: Individual
 
@@ -20,7 +20,7 @@
   gid: "cohort:{{name}}"
   actions:
     - field: hasSample
-      repeated_edges:
+      remote_edges:
         edge_label: hasSample
         destination_label: Biosample
 
@@ -32,14 +32,23 @@
       splice_map:
         prefix: info
     - field: individualId
-      single_edge:
-        edge_label: sampleOf
+      remote_edges:
+        edge_label: biosampleOfIndividual
         destination_label: Individual
     - field: disease
       inner_vertex:
-        edge_label: diseaseOf
+        edge_label: termForDisease
         destination_label: OntologyTerm
         outer_id: biosampleId
+
+- label: CallSet
+  role: Edge
+  gid: "callSet:{{name}}"
+  actions:
+    - field: biosampleId
+      edge_terminal:
+        edge_label: variantInBiosample
+        destination_label: Biosample
 
 - label: Variant
   role: Vertex
@@ -49,48 +58,39 @@
       splice_map:
         prefix: info
     - field: calls
-      embedded_edges:
-        edge_label: inCallSet
-        destination_label: CallSet
+      link_through:
+        edge_label: variantInBiosample
+        destination_label: Biosample
         embedded_in: callSetId
     - field: alternateBases
       join_list:
         delimiter: ","
 
-- label: CallSet
-  role: Vertex
-  gid: "callSet:{{name}}"
-  actions:
-    - field: biosampleId
-      single_edge:
-        edge_label: callsFor
-        destination_label: Biosample
-
 - label: VariantAnnotation
-  role: PartialEdge
+  role: Edge
   gid: "variantAnnotation:{{variantId}}:{{annotationSetId}}"
   actions:
     - field: transcriptEffects
-      embedded_link_through:
-        edge_label: variantIn
-        through_label: TranscriptEffect
-        through_field: featureId
+      embedded_terminals:
+        edge_label: variantInGene
         destination_label: Gene
+        embedded_in: featureId
+        lift_fields: [effects]
     - field: variantId
       edge_source:
-        edge_label: variantIn
+        edge_label: variantInGene
         destination_label: Variant
     - field: variantId
       store_field:
         store: true
 
 - label: TranscriptEffect
-  role: PartialEdge
+  role: Edge
   gid: "transcriptEffect:{{featureId}}:{{annotationId}}:{{alternateBases}}"
   actions:
     - field: featureId
       edge_terminal:
-        edge_label: variantIn
+        edge_label: variantInGene
         destination_label: Gene
     - field: effects
       lift_fields: true
@@ -109,26 +109,26 @@
     - field: values
       serialize_field:
         serialized_name: responseValues
-    - field: compound
-      edge_source:
-        edge_label: responseTo
-        destination_label: Compound
     - field: sample
-      edge_terminal:
-        edge_label: responseTo
+      edge_source:
+        edge_label: responseToCompound
         destination_label: Biosample
+    - field: compound
+      edge_terminal:
+        edge_label: responseToCompound
+        destination_label: Compound
 
 - label: Compound
   role: Vertex
   gid: "compound:{{name}}"
   actions:
     - field: synonyms
-      repeated_edges:
-        edge_label: compoundSynonym
+      remote_edges:
+        edge_label: synonymForCompound
         destination_label: Compound
     - field: target
-      single_edge:
-        edge_label: targetsGene
+      remote_edges:
+        edge_label: compoundTargetsGene
         destination_label: Gene
 
 - label: Gene
@@ -136,11 +136,11 @@
   gid: "gene:{{symbol}}"
   actions:
     - field: inFamily
-      repeated_edges:
-        edge_label: inFamily
+      remote_edges:
+        edge_label: geneInFamily
         destination_label: GeneFamily
     - field: citedFrom
-      repeated_edges:
+      remote_edges:
         edge_label: citedFrom
         destination_label: Pubmed
 
@@ -149,12 +149,12 @@
   gid: "geneSynonym:{{symbol}}"
   actions:
     - field: synonymFor
-      edge_source:
-        edge_label: synonymFor
+      edge_terminal:
+        edge_label: synonymForGene
         destination_label: Gene
     - field: inDatabase
-      edge_terminal:
-        edge_label: synonymFor
+      edge_source:
+        edge_label: synonymForGene
         destination_label: GeneDatabase
     - field: info
       splice_map:
@@ -176,8 +176,8 @@
       serialize_field:
         serialized_name: serializedExpressions
     - field: biosampleId
-      single_edge:
-        edge_label: expressionFor
+      remote_edges:
+        edge_label: expressionForSample
         destination_label: Biosample
 
 - label: Pubmed
@@ -185,12 +185,12 @@
   gid: "pubmed:{{id}}"
 
 - label: CNACallSet
-  role: PartialEdge
+  role: Edge
   gid: "cnaCallSet:{{bioSampleId}}"
   actions:
     - field: bioSampleId
       edge_terminal:
-        edge_label: cnaCallsFor
+        edge_label: segmentOfSample
         destination_label: Biosample
 
 - label: CNASegment
@@ -199,11 +199,9 @@
   actions:
     - field: callSetId
       link_through:
-        edge_label: cnaCallsFor
-        through_label: CNACallSet
-        through_field: bioSampleId
+        edge_label: segmentOfSample
         destination_label: Biosample
     - field: genes
-      repeated_edges:
-        edge_label: calledInGene
+      remote_edges:
+        edge_label: segmentInGene
         destination_label: Gene
