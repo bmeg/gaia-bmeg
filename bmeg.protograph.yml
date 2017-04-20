@@ -19,7 +19,7 @@
   role: Vertex
   gid: "cohort:{{name}}"
   actions:
-    - field: hasSample
+    - field: hasMember
       remote_edges:
         edge_label: hasSample
         destination_label: Biosample
