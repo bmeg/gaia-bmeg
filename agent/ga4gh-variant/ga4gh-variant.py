@@ -23,7 +23,7 @@ def proto_list_append(message, a):
 
 
 class Converter(object):
-    def __init__(self, bioPrefix, variantPrefix, variantSetPrefix, callSetPrefix, variantAnnotationPrefix, transcriptEffectPrefix, hugoPrefix, typeField, centerCol):
+    def __init__(self, bioPrefix, variantPrefix, variantSetPrefix, callSetPrefix, variantAnnotationPrefix, transcriptEffectPrefix, hugoPrefix, typeField, centerCol, projectMap):
         self.bioPrefix = bioPrefix
         self.variantPrefix = variantPrefix
         self.variantSetPrefix = variantSetPrefix
@@ -33,6 +33,7 @@ class Converter(object):
         self.transcriptEffectPrefix = transcriptEffectPrefix
         self.hugoPrefix = hugoPrefix
         self.centerCol = centerCol
+        self.projectMap = projectMap
         
     def gid_biosample(self, source, name):
         return '%s:%s:%s' % (self.bioPrefix, source, name)
@@ -60,6 +61,10 @@ class MafConverter(Converter):
     #    super(MafConverter, self).__init__(**kwargs)
 
     def convert(self, emit, mafpath):
+        mapping = {}
+        with open(self.projectMap) as handle:
+            mapping = json.loads(handle.read())
+
         center = 2
         ncbi_build = 3
         chromosome = 4
@@ -93,7 +98,7 @@ class MafConverter(Converter):
         logging.info('converting maf: ' + mafpath)
         
         samples = set()
-        variants = set()
+        # variants = set()
 
         header = None
         if mafpath.endswith(".gz"):
@@ -155,16 +160,20 @@ class MafConverter(Converter):
                 emit(annotation)
         
         for sample in samples:
+            name = sample
+            if name.startswith('TCGA'):
+                name = name[:16]
+            project = mapping.get(name, 'CCLE')
             callset = variants_pb2.CallSet()
-            callset.id = self.gid_call_set(sample)
+            callset.id = self.gid_call_set(name)
             callset.name = sample
-            callset.biosample_id = self.gid_biosample("CCLE", sample)
+            callset.biosample_id = self.gid_biosample(project, name)
             emit(callset)
 
         inhandle.close()
 
 
-def convert_to_profobuf(maf, vcf, out, multi, format, bioPrefix, variantPrefix, variantSetPrefix, callSetPrefix, variantAnnotationPrefix, transcriptEffectPrefix, hugoPrefix, typeField, centerCol):
+def convert_to_profobuf(maf, vcf, out, multi, format, bioPrefix, variantPrefix, variantSetPrefix, callSetPrefix, variantAnnotationPrefix, transcriptEffectPrefix, hugoPrefix, typeField, centerCol, projectMap):
     out_handles = {}
     if maf:
         m = MafConverter(
@@ -176,7 +185,8 @@ def convert_to_profobuf(maf, vcf, out, multi, format, bioPrefix, variantPrefix, 
             transcriptEffectPrefix=transcriptEffectPrefix,
             hugoPrefix=hugoPrefix,
             typeField=typeField,
-            centerCol=centerCol
+            centerCol=centerCol,
+            projectMap=projectMap
         )
         def emit_json_single(message):
             if 'main' not in out_handles:
@@ -225,7 +235,7 @@ def parse_args(args):
     parser.add_argument('--transcriptEffectPrefix', default='transcriptEffect')
     parser.add_argument('--hugoPrefix', default='gene')
     parser.add_argument('--center', dest="centerCol", default='Center', help='caller field')
-    
+    parser.add_argument('--projectMap', help='mapping of sample names to project names')
     parser.add_argument('--format', type=str, default='json', help='Format of output: json or pbf (binary)')
     return parser.parse_args(args)
 
