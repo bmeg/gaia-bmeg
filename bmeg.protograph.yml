@@ -170,7 +170,7 @@
 
 - label: GeneExpression
   role: Vertex
-  gid: "geneExpression:{{gid}}"
+  gid: "geneExpression:{{biosampleId}}"
   actions:
     - field: expressions
       serialize_field:
@@ -179,6 +179,9 @@
       remote_edges:
         edge_label: expressionForSample
         destination_label: Biosample
+    - field: biosampleId
+      store_field:
+        store: true
 
 - label: Pubmed
   role: Vertex
