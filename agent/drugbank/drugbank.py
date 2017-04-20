@@ -2,100 +2,112 @@
 
 __all__ = ['DrugBankReader']
 
-
+import sys
 import re
 import xml.sax
 import json
-import multiprocessing
-
+import logging
 
 reWord = re.compile(r'\w')
 reSpace = re.compile(r'\s')
 
-ont_base = "http://bmeg.ucsc.edu/drug_ont#"
 
-def id_mutate(s):
-    return "http://bmeg.ucsc.edu/drugbank/" + s
+def ignore(e, v,**kwds):
+    return None
 
-def default_mutate(s):
-    return  {"@value" : s }
+def create_list(e, v):
+    return [v]
 
-def link_mutate(s):
-    return  {"@id" : s }
+def string_pass(e, v):
+    return v
 
-def id_link_mutate(s):
-    return link_mutate(id_mutate(s))
+def pass_data(e,v,**kwds):
+    return kwds
 
-def ont_mutate(s):
-    return link_mutate(ont_base + reSpace.sub("_", s))
+def create_dict_list(e, v, **kwds):
+    return [kwds]
 
-def m_copy(s):
-    return s
-
-extenal_mapping = {
-    "KEGG Drug" : "http://bmeg.ucsc.edu/kegg/",
-    "KEGG Compound" : "http://bmeg.ucsc.edu/kegg/",
-    "Drugs Product Database (DPD)" : "http://bmeg.ucsc.edu/DPD/",
-    "National Drug Code Directory" : "http://bmeg.ucsc.edu/NCDC/",
-    "PharmGKB" : "http://bmeg.ucsc.edu/PharmGKB/",
-    "UniProtKB" : "http://bmeg.ucsc.edu/uniprotkb/",
-    "GenBank" : "http://bmeg.ucsc.edu/genebank/",
-    "ChEBI" : "http://bmeg.ucsc.edu/chebi/",
-    "BindingDB" : "http://bmeg.ucsc.edu/BindingDB/",
-    "IUPHAR" : "http://bmeg.ucsc.edu/IUPHAR/",
-    "Guide to Pharmacology" : "http://bmeg.ucsc.edu/g2pharma/",
-    "PubChem Compound" : "http://bmeg.ucsc.edu/pubchem/",
-    "PubChem Substance" : "http://bmeg.ucsc.edu/pubchem/",
-    "ChemSpider" : "http://bmeg.ucsc.edu/ChemSpider/",
-    "PDB" : "http://bmeg.ucsc.edu/pdb/",
-}
-
-def external_ident(s):
-    return extenal_mapping[s['resource']] + s['identifier']
-
-def property_select(s):
-    return ont_base + reSpace.sub("_", s['kind'])
-
-def property_format(s):
-    return s['value']
+def debug_emit(e, v, **kwds):
+    print json.dumps(kwds)
+    
 
 f_map = [
-    (['drugs', 'drug', 'drugbank-id'], "@id", id_mutate, False),
-    (['drugs', 'drug', 'cas-number'],  ont_base + "casNumber", None, True),
+    (['drugbank','drug'], None, debug_emit),    
 
-    (['drugs', 'drug', 'half-life'], ont_base + "halfLife", None, True),
+    (['drugbank','drug','drugbank-id'], None, create_list),
+    
+    (['drugbank','drug',
+        ['name','description','cas-number','unii','state','indication', 'toxicity','metabolism','half-life',
+        'clearance', 'absorption','mechanism-of-action','route-of-elimination','average-mass','monoisotopic-mass','protein-binding']], 
+        None, string_pass),
 
-    (['drugs', 'drug', 'transporters', 'transporter', 'actions', 'action'], ont_base + "transporterAction", ont_mutate, True),
-    (['drugs', 'drug', 'targets', 'target', 'actions', 'action'], ont_base + "targetAction", ont_mutate, True),
-    (['drugs', 'drug', 'groups', 'group'], ont_base + "group", None, True),
-    (['drugs', 'drug', 'enzymes', 'enzyme', 'actions', 'action'], ont_base + "group", ont_mutate, True),
-    (['drugs', 'drug', 'clearance'], ont_base + "clearance", None, True),
-    (['drugs', 'drug', 'categories', 'category'], ont_base + "category", ont_mutate, True),
-    (['drugs', 'drug', 'synonyms', 'synonym'], ont_base + "synonym", None, True),
-    (['drugs', 'drug', 'name'], ont_base + "name", None, True),
-    (['drugs', 'drug', 'brands', 'brand'], ont_base + "brand", None, True),
-    (['drugs', 'drug', 'targets', 'target', 'references'], ont_base + "targetReference", None, True),
+    (['drugbank','drug','synonyms','synonym'], None, create_list),
+    (['drugbank','drug','synonyms'], None, pass_data),
 
-    (['drugs', 'drug', 'description'], ont_base + "description", None, True),
+    (['drugbank','drug','products','product','*'], None, string_pass),
+    (['drugbank','drug','products','product'], 'products', create_dict_list),
+    (['drugbank','drug','products'], None, pass_data),
+    
+    (['drugbank','drug','groups', 'group'], None, create_list),
+    (['drugbank','drug','groups'], None, pass_data),
+    
 
-    (['drugs', 'drug', 'general-references'],  ont_base + "generalReference", None, True),
-    (['drugs', 'drug', 'external-links', 'external-link', 'url'], ont_base + "xref", link_mutate, True),
+    (['drugbank','drug','targets','target','polypeptide','go-classifiers','go-classifier', '*'], None, string_pass),    
+    (['drugbank','drug','targets','target','polypeptide','go-classifiers','go-classifier'], 'go-classifiers', create_dict_list),
+    (['drugbank','drug','targets','target','polypeptide','go-classifiers'], None, pass_data),
+    
+    (['drugbank','drug','targets','target','polypeptide','synonyms','synonym'], None, create_list),
+    (['drugbank','drug','targets','target','polypeptide','synonyms'], None, pass_data),
+    
+    (['drugbank','drug','targets','target','polypeptide',
+        ['name','general-function','specific-function','gene-name','locus','cellular-location','molecular-weight','organism']], None, pass_data),
+    
+    (['drugbank','drug','targets','target','polypeptide'], None, pass_data),
 
-    (['drugs', 'drug', 'indication'], ont_base + "indication", None, True),
+    (['drugbank','drug','targets','target','references','articles','article','*'], None, string_pass),
+    (['drugbank','drug','targets','target','references','articles','article'], 'articles', create_dict_list),
+    (['drugbank','drug','targets','target','references','articles'], None, pass_data),
+    (['drugbank','drug','targets','target','references'], None, pass_data),
+    
+    (['drugbank','drug','enzymes','enzyme','polypeptide','go-classifiers','go-classifier','*'], None, string_pass ),
+    (['drugbank','drug','enzymes','enzyme','polypeptide','go-classifiers','go-classifier'], 'go-classifiers', create_dict_list ),
+    (['drugbank','drug','enzymes','enzyme','polypeptide','go-classifiers'], None, pass_data ),
+    
+    (['drugbank','drug','enzymes','enzyme','polypeptide',
+        ['name','general-function','specific-function','gene-name','organism','molecular-weight','amino-acid-sequence','gene-sequence']], None, string_pass ),
+    
+    (['drugbank','drug','enzymes','enzyme','polypeptide'], None, pass_data ),
+    (['drugbank','drug','enzymes','enzyme'], 'enzymes', create_dict_list ),
+    (['drugbank','drug','enzymes'], None, pass_data ),
 
-    (['drugs', 'drug', 'calculated-properties', 'property', 'kind'], "kind", m_copy, False),
-    (['drugs', 'drug', 'calculated-properties', 'property', 'value'], "value", m_copy, False),
-    (['drugs', 'drug', 'calculated-properties', 'property'], property_select, property_format, True),
+    (['drugbank','drug','targets','target',
+        ['id','name','organism','known-action']], None, pass_data),
+
+    (['drugbank','drug','targets','target'], 'targets', create_dict_list),
+    (['drugbank','drug','targets'], None, pass_data),
+
+    (['drugbank','drug','classification','description', '*'], None, string_pass),
+    (['drugbank','drug','classification','description'], None, pass_data),
+    (['drugbank','drug','classification',['direct-parent','kingdom','superclass','class','subclass']], None, string_pass),
+    (['drugbank','drug','classification'], None, pass_data),
+    
+    (['drugbank','drug','categories','category', '*'], None, string_pass),
+    (['drugbank','drug','categories','category'], 'categories', create_dict_list),
+    (['drugbank','drug','categories'], None, pass_data),
+
+    (['drugbank','drug','mixtures','mixture','*'], None, string_pass),
+    (['drugbank','drug','mixtures','mixture'], 'mixtures', create_dict_list),
+    (['drugbank','drug','mixtures'], None, pass_data),
+    
+    (['drugbank','drug','drug-interactions','drug-interaction','*'], None, string_pass),
+    (['drugbank','drug','drug-interactions','drug-interaction'], 'drug-interactions', create_dict_list),
+    (['drugbank','drug','drug-interactions'], None, pass_data),
+
+    (['drugbank','drug','dosages','dosage','*'], None, string_pass),
+    (['drugbank','drug','dosages','dosage'], 'dosages', create_dict_list),
+    (['drugbank','drug','dosages'], None, pass_data),
 
 
-    (['drugs', 'drug', 'drug-interactions', 'drug-interaction', 'drug'], ont_base + "drugInteraction", id_link_mutate, True),
-    (['drugs', 'drug', 'drug-interactions', 'drug-interaction', 'name'], ont_base + "name", None, True),
-    (['drugs', 'drug', 'drug-interactions', 'drug-interaction', 'description'], ont_base + "description", None, True),
-    (['drugs', 'drug', 'drug-interactions', 'drug-interaction'], ont_base + "drugInteraction", m_copy, True),
-
-    (['drugs', 'drug', 'external-identifiers', 'external-identifier', 'resource'], "resource", m_copy, False),
-    (['drugs', 'drug', 'external-identifiers', 'external-identifier', 'identifier'], "identifier", m_copy, False),
-    (['drugs', 'drug', 'external-identifiers', 'external-identifier'], ont_base + "extIdent", external_ident, True)
 ]
 
 class StackLevel:
@@ -103,6 +115,21 @@ class StackLevel:
         self.data = {}
         self.name = name
         self.has_children = False
+
+def stack_match(query, elem):
+    match = True
+    if len(query) != len(elem):
+        return False
+    for q, e in zip(query, elem):
+        if isinstance(q, list):
+            if e not in q:
+                return False
+        else:
+            if q != "*" and q != e:
+                return False
+    return True
+
+NOT_FOUND = set()
 
 class DrugBankHandler(xml.sax.ContentHandler):
     def __init__(self, record_write):
@@ -124,58 +151,32 @@ class DrugBankHandler(xml.sax.ContentHandler):
         stack_id = list(i.name for i in self.stack)
         #print stack_id
         level = self.stack.pop()
-        if not level.has_children:
-            for s, f, m, append in f_map:
-                if s == stack_id:
-                    found = True
-                    if f not in self.stack[-1].data:
-                        self.stack[-1].data[f] = []
-
-                    val = None
-                    if m is None:
-                        val = default_mutate(self.buffer)
+        for s, out_name, f in f_map:
+            if stack_match(s, stack_id):
+                found = True
+                if out_name is None:
+                    out_name = stack_id[-1]
+                v = f(self.record_write, self.buffer, **level.data)
+                if v is not None:
+                    if isinstance(v,list):
+                        if out_name in self.stack[-1].data:
+                            self.stack[-1].data[out_name].extend(v)
+                        else:
+                            self.stack[-1].data[out_name] = v
+                    elif isinstance(v,dict):
+                        if out_name in self.stack[-1].data:
+                            self.stack[-1].data[out_name] = dict(self.stack[-1].data, **v)
+                        else:
+                            self.stack[-1].data[out_name] = v
                     else:
-                        val = m(self.buffer)
-
-                    if append:
-                        if len(val):
-                            self.stack[-1].data[f].append( val )
-                    else:
-                        if len(val):
-                            self.stack[-1].data[f] = val
-            #if not found:
-            #    sys.stderr.write("Not Found: %s %s\n" % (str(stack_id), self.buffer.encode('ascii', errors='ignore')))
-        else:
-            found = False
-            for s, f, m, append in f_map:
-                if s == stack_id:   
-                    found = True
-                    if callable(f):
-                        f = f(level.data)
-                    if f not in self.stack[-1].data:
-                        self.stack[-1].data[f] = []
-
-                    val = m(level.data)
-                    if append:
-                        if len(val):
-                            self.stack[-1].data[f].append( val )
-                    else:
-                        if len(val):
-                            self.stack[-1].data[f] = val
-
-            if not found:
-                if len(self.stack):
-                    for k,v in level.data.iteritems():
-                        self.stack[-1].data[k] = v
-        
-            
+                        self.stack[-1].data[out_name] = v
+        if not found:
+            n = ",".join(stack_id)
+            if n not in NOT_FOUND:
+                NOT_FOUND.add(n)
+                logging.warning("combiner for %s not found" % (",".join(stack_id)))
         self.buffer = ""
-        post = list(i.name for i in self.stack)
-        #print "post", post
-        if post == ['drugs']:
-            #print self.stack[-1].data
-            self.record_write(self.stack[-1].data)
-            self.cur_record = {}
+        
 
 
 def run_sax_parse(handle, queue):
@@ -184,31 +185,23 @@ def run_sax_parse(handle, queue):
         
     handler = DrugBankHandler(record_write)
     parser = xml.sax.make_parser()
-    #parser.setFeature(xml.sax.handler.feature_namespaces, True)
     parser.setContentHandler(handler)
     parser.parse(handle)
     queue.close()
 
+def emit(msg):
+    print msg
 
 def parse_drugbank(handle):   
-    q_out, q_in = multiprocessing.Pipe(duplex = False)
-    process = multiprocessing.Process(target=run_sax_parse, args=(handle, q_in))
-    process.start()
-    q_in.close()
-
-    while True:
-        try:
-            yield q_out.recv()
-        except EOFError:
-            break
-
+    handler = DrugBankHandler(emit)
+    parser = xml.sax.make_parser()
+    parser.setContentHandler(handler)
+    parser.parse(handle)
 
 if __name__ =="__main__":
-    import sys
+    logging.basicConfig(level=logging.INFO)
     path = sys.argv[1]
     handle = open(path)
 
-    for line in parse_drugbank(handle):
-        #pass 
-        print json.dumps(line, indent=4)
+    parse_drugbank(handle)
     
