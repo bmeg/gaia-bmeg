@@ -1,6 +1,6 @@
-- label: IndividualCohort
+- label: Project
   role: Vertex
-  gid: "individualCohort:{{name}}"
+  gid: "project:{{name}}"
   actions:
     - field: hasMember
       remote_edges:
@@ -14,6 +14,8 @@
     - field: info
       splice_map:
         prefix: info
+        delimiter: ":"
+        lift_fields: true
 
 - label: Cohort
   role: Vertex
